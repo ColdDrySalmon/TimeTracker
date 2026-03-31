@@ -57,6 +57,37 @@ input{font-family:inherit;}
 /* tag panel */
 .tag-add-btn{display:inline-block;background:transparent;border:0.5px dashed var(--border2);color:var(--text3);font-size:12px;padding:5px 12px;border-radius:20px;margin-bottom:0.875rem;}
 .tag-add-btn:hover{color:var(--text2);border-color:var(--text3);}
+/* recent tags quick-add row */
+.recent-tags-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+.recent-tag-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;}
+.recent-tag-chip:hover{background:var(--bg2);color:var(--text);}
+.recent-tag-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+/* tag filter in insights */
+.tag-filter-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:1rem;}
+.tag-filter-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;}
+.tag-filter-chip:hover{background:var(--bg2);color:var(--text);}
+.tag-filter-chip.active{background:var(--bg3);color:var(--text);border-color:var(--border2);}
+.tag-filter-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.filter-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius);background:var(--bg2);border:0.5px solid var(--border);margin-bottom:1rem;font-size:13px;color:var(--text2);}
+.filter-bar-tag{font-weight:500;color:var(--text);}
+.filter-clear-btn{margin-left:auto;background:transparent;border:none;color:var(--text3);font-size:12px;padding:0;cursor:pointer;}
+.filter-clear-btn:hover{color:var(--text2);}
+/* tag viz section */
+.tag-viz-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.tag-viz-title{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);}
+.viz-toggle{display:inline-flex;background:var(--bg2);border-radius:8px;padding:2px;gap:0;}
+.viz-toggle-btn{padding:4px 12px;border:none;background:transparent;border-radius:6px;font-size:12px;color:var(--text3);cursor:pointer;}
+.viz-toggle-btn.active{background:var(--bg);color:var(--text);border:0.5px solid var(--border2);}
+/* tag bar chart */
+.tag-bars{display:flex;flex-direction:column;gap:8px;margin-bottom:1.75rem;}
+.tag-bar-row{display:flex;align-items:center;gap:10px;}
+.tag-bar-label{font-size:12px;color:var(--text2);width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.tag-bar-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.tag-bar-track{flex:1;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;}
+.tag-bar-fill{height:100%;border-radius:3px;}
+.tag-bar-val{font-size:12px;font-family:var(--mono);color:var(--text2);flex-shrink:0;width:36px;text-align:right;}
+/* tag pie */
+.tag-pie-wrap{display:flex;align-items:flex-start;gap:1.5rem;margin-bottom:1.75rem;padding:1.25rem;background:var(--bg2);border-radius:var(--radius-lg);}
 .tag-panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:0.875rem 1.125rem;margin-bottom:0.875rem;}
 .tag-panel-title{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:8px;}
 .tag-input-row{display:flex;gap:8px;margin-bottom:8px;}
@@ -204,6 +235,8 @@ let data={categories:[...DEFAULT_CATS],sessions:[],activeSession:null,tagPools:{
 let view="tracker",period="today";
 let showSettings=false,addingCat=false,showTagInput=false;
 let expandedSid=null,expandedAddingTag=false;
+let activeTagFilter=null; // {catId, tag} | null
+let tagViewMode="bar"; // "pie" | "bar"
 let syncState="idle",saveTimer=null;
 let token="",gistId="";
 
@@ -409,6 +442,24 @@ function getDailyAvg(p){
 function tagUseCount(cid,tag){
   return data.sessions.filter(s=>s.categoryId===cid&&(s.tags||[]).includes(tag)).length;
 }
+// Up to 5 most recently used tags for a category (recency order, unique)
+function recentTagsFor(catId){
+  const seen=[],result=[];
+  for(let i=data.sessions.length-1;i>=0;i--){
+    const s=data.sessions[i];
+    if(s.categoryId!==catId)continue;
+    for(const t of(s.tags||[])){
+      if(!seen.includes(t)){seen.push(t);result.push(t);}
+      if(result.length>=5)return result;
+    }
+  }
+  return result;
+}
+function setTagFilter(catId,tag){
+  activeTagFilter=(activeTagFilter&&activeTagFilter.catId===catId&&activeTagFilter.tag===tag)?null:{catId,tag};
+  renderContent();
+}
+function clearTagFilter(){activeTagFilter=null;renderContent();}
 
 // ── formatters ─────────────────────────────────────────────────────────────
 function fmt(sec){
@@ -505,6 +556,14 @@ function buildTracker(){
 
   // tag input area
   if(ac){
+    const recentTags=recentTagsFor(ac.id).filter(t=>!activeTags.includes(t));
+    if(recentTags.length){
+      h+=`<div class="recent-tags-row">`;
+      recentTags.forEach(t=>{
+        h+=`<button class="recent-tag-chip" data-tag="${esc(t)}" onclick="pickPoolTag(this.dataset.tag)"><span class="recent-tag-dot" style="background:${ac.color}"></span>${esc(t)}</button>`;
+      });
+      h+=`</div>`;
+    }
     if(!showTagInput){
       h+=`<button class="tag-add-btn" onclick="openTagInput()">+ Add tag</button>`;
     }else{
@@ -560,13 +619,9 @@ function buildTracker(){
 
 // ── build: insights ────────────────────────────────────────────────────────
 function buildInsights(){
-  const stats=getStats(period);
-  const ss=getSessions(period);
-  const total=Object.values(stats).reduce((a,b)=>a+b,0);
-  const sorted=data.categories.map(c=>({...c,ms:stats[c.id]||0})).sort((a,b)=>b.ms-a.ms);
-  const avg=getDailyAvg(period);
   const periods=["today","week","month","year","all time"];
 
+  // period + export row
   let h=`<div class="period-row">`;
   periods.forEach(p=>{
     h+=`<button class="period-btn${period===p?" active":""}" onclick="setPeriod('${p}')">${p.charAt(0).toUpperCase()+p.slice(1)}</button>`;
@@ -574,11 +629,66 @@ function buildInsights(){
   h+=`<button class="export-btn" onclick="exportSessions()">Sessions CSV</button>`;
   h+=`<button class="export-btn" onclick="exportDaily()">Daily CSV</button></div>`;
 
+  // collect all tags used in this period, grouped by category
+  const allSessions=getSessions(period);
+  const tagsByCat={};
+  allSessions.filter(s=>s.endTime).forEach(s=>{
+    (s.tags||[]).forEach(t=>{
+      if(!tagsByCat[s.categoryId])tagsByCat[s.categoryId]=new Set();
+      tagsByCat[s.categoryId].add(t);
+    });
+  });
+  const hasTags=Object.keys(tagsByCat).some(cid=>tagsByCat[cid].size>0);
+
+  // tag filter chips
+  if(hasTags){
+    h+=`<div class="tag-filter-row">`;
+    data.categories.forEach(cat=>{
+      if(!tagsByCat[cat.id])return;
+      [...tagsByCat[cat.id]].sort().forEach(tag=>{
+        const isActive=!!(activeTagFilter&&activeTagFilter.catId===cat.id&&activeTagFilter.tag===tag);
+        h+=`<button class="tag-filter-chip${isActive?" active":""}" data-catid="${cat.id}" data-tag="${esc(tag)}" onclick="setTagFilter(this.dataset.catid,this.dataset.tag)">`;
+        h+=`<span class="tag-filter-dot" style="background:${cat.color}"></span>${esc(tag)}`;
+        h+=`</button>`;
+      });
+    });
+    h+=`</div>`;
+  }
+
+  // apply filter to sessions
+  let ss=allSessions;
+  if(activeTagFilter){
+    ss=ss.filter(s=>s.categoryId===activeTagFilter.catId&&(s.tags||[]).includes(activeTagFilter.tag));
+    const filterCat=data.categories.find(c=>c.id===activeTagFilter.catId);
+    h+=`<div class="filter-bar">`;
+    h+=`<span class="tag-filter-dot" style="background:${filterCat?filterCat.color:"var(--text3)"}"></span>`;
+    h+=`<span>Showing <span class="filter-bar-tag">${esc(activeTagFilter.tag)}</span>`;
+    if(filterCat)h+=` in ${esc(filterCat.name)}`;
+    h+=`</span>`;
+    h+=`<button class="filter-clear-btn" onclick="clearTagFilter()">Clear ×</button>`;
+    h+=`</div>`;
+  }
+
+  // stats from filtered sessions
+  const stats={};data.categories.forEach(c=>{stats[c.id]=0;});
+  ss.forEach(s=>{if(s.categoryId in stats)stats[s.categoryId]+=(s.endTime-s.startTime);});
+  const total=Object.values(stats).reduce((a,b)=>a+b,0);
+  const sorted=data.categories.map(c=>({...c,ms:stats[c.id]||0})).sort((a,b)=>b.ms-a.ms);
+
+  // daily avg from filtered sessions
+  let avg=null;
+  if(period!=="today"&&ss.length){
+    const days=new Set(ss.map(s=>dayKey(s.startTime)));
+    avg=ss.reduce((a,s)=>a+(s.endTime-s.startTime),0)/days.size;
+  }
+
+  // summary cards
   h+=`<div class="summary-grid">`;
   h+=`<div class="sum-card"><div class="sum-label">${period==="today"?"today's total":"total tracked"}</div><div class="sum-val">${total>0?fmtMs(total):"–"}</div></div>`;
   if(avg)h+=`<div class="sum-card"><div class="sum-label">daily avg</div><div class="sum-val">${fmtMs(avg)}</div></div>`;
   h+=`</div>`;
 
+  // pie
   if(total>0){
     const sz=120;
     h+=`<div class="pie-wrap">`;
@@ -590,22 +700,61 @@ function buildInsights(){
     h+=`</div></div>`;
   }
 
+  // category bars with tag breakdown
   h+=`<div class="cat-bars">`;
   sorted.forEach(cat=>{
     const pct=total>0?Math.round(cat.ms/total*100):0;
-    const ts=getTagStats(period,cat.id);
     h+=`<div>`;
     h+=`<div class="bar-head"><span>${esc(cat.name)}${cat.ms>0?`<span class="bar-pct">${pct}%</span>`:""}</span><span class="bar-time">${cat.ms>0?fmtMs(cat.ms):"–"}</span></div>`;
     h+=`<div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${cat.color}"></div></div>`;
-    if(ts.length){
-      h+=`<div class="tag-bk">`;
-      ts.forEach(([t,ms])=>{h+=`<div class="tag-bk-item"><span class="tag-bk-n">↳ ${esc(t)}</span><span class="tag-bk-v">${fmtMs(ms)}</span></div>`;});
-      h+=`</div>`;
-    }
     h+=`</div>`;
   });
   h+=`</div>`;
 
+  // collect tag totals across all categories (respects active filter)
+  const allTagStats=[];
+  data.categories.forEach(cat=>{
+    const tStats={};
+    ss.filter(s=>s.categoryId===cat.id).forEach(s=>{
+      (s.tags||[]).forEach(t=>{tStats[t]=(tStats[t]||0)+(s.endTime-s.startTime);});
+    });
+    Object.entries(tStats).forEach(([t,ms])=>allTagStats.push({tag:t,ms,color:cat.color,catName:cat.name}));
+  });
+  allTagStats.sort((a,b)=>b.ms-a.ms);
+
+  if(allTagStats.length){
+    const tagTotal=allTagStats.reduce((a,t)=>a+t.ms,0);
+    h+=`<div class="tag-viz-hd">`;
+    h+=`<span class="tag-viz-title">Tags</span>`;
+    h+=`<div class="viz-toggle">`;
+    h+=`<button class="viz-toggle-btn${tagViewMode==="bar"?" active":""}" onclick="setTagViewMode('bar')">Bar</button>`;
+    h+=`<button class="viz-toggle-btn${tagViewMode==="pie"?" active":""}" onclick="setTagViewMode('pie')">Pie</button>`;
+    h+=`</div></div>`;
+
+    if(tagViewMode==="bar"){
+      const maxMs=allTagStats[0].ms;
+      h+=`<div class="tag-bars">`;
+      allTagStats.forEach(({tag,ms,color,catName})=>{
+        h+=`<div class="tag-bar-row">`;
+        h+=`<div class="tag-bar-label"><span class="tag-bar-dot" style="background:${color}"></span>${esc(tag)}</div>`;
+        h+=`<div class="tag-bar-track"><div class="tag-bar-fill" style="width:${Math.round(ms/maxMs*100)}%;background:${color}"></div></div>`;
+        h+=`<div class="tag-bar-val">${fmtMs(ms)}</div>`;
+        h+=`</div>`;
+      });
+      h+=`</div>`;
+    }else{
+      const sz=120;
+      h+=`<div class="tag-pie-wrap">`;
+      h+=`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;border-radius:50%;overflow:hidden">${makePie(allTagStats.map(t=>({v:t.ms,color:t.color})),sz)}</svg>`;
+      h+=`<div class="pie-legend">`;
+      allTagStats.forEach(({tag,ms,color})=>{
+        h+=`<div class="pie-li"><span class="pie-sw" style="background:${color}"></span><span class="pie-name">${esc(tag)}</span><span class="pie-val">${Math.round(ms/tagTotal*100)}%</span></div>`;
+      });
+      h+=`</div></div>`;
+    }
+  }
+
+  // session list
   const completed=ss.filter(s=>s.endTime);
   if(completed.length){
     h+=`<div class="sec-label">Sessions</div><div class="session-list">`;
@@ -658,7 +807,7 @@ function buildInsights(){
     });
     h+=`</div>`;
   }else{
-    h+=`<div class="empty">No sessions for this period</div>`;
+    h+=`<div class="empty">${activeTagFilter?"No sessions match this filter":"No sessions for this period"}</div>`;
   }
   return h;
 }
@@ -786,7 +935,8 @@ function toggleSettings(){
 }
 
 // ── ui handlers ────────────────────────────────────────────────────────────
-function setPeriod(p){period=p;renderContent();}
+function setPeriod(p){period=p;activeTagFilter=null;renderContent();}
+function setTagViewMode(m){tagViewMode=m;renderContent();}
 function toggleAddCat(){
   addingCat=!addingCat;
   renderContent();
