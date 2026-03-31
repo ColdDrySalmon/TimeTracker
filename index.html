@@ -19,7 +19,7 @@
 }}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
-#app{max-width:520px;margin:0 auto;padding:1.75rem 1.25rem 5rem;}
+#shell{max-width:520px;margin:0 auto;padding:1.75rem 1.25rem 5rem;}
 button{font-family:inherit;cursor:pointer;}
 input{font-family:inherit;}
 .inp{font-size:14px;padding:9px 12px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);width:100%;outline:none;}
@@ -27,9 +27,9 @@ input{font-family:inherit;}
 .inp::placeholder{color:var(--text3);}
 
 /* topbar */
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
-.topbar-title{font-size:16px;font-weight:500;letter-spacing:-0.01em;}
-.topbar-right{display:flex;align-items:center;gap:8px;}
+#topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+.tb-title{font-size:16px;font-weight:500;letter-spacing:-0.01em;}
+.tb-right{display:flex;align-items:center;gap:8px;}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--bg3);flex-shrink:0;transition:background 0.3s;}
 .sync-dot.syncing{background:#EF9F27;}
 .sync-dot.ok{background:#1D9E75;}
@@ -37,10 +37,11 @@ input{font-family:inherit;}
 .icon-btn{background:transparent;border:none;padding:5px 7px;border-radius:8px;color:var(--text3);font-size:15px;line-height:1;}
 .icon-btn:hover{color:var(--text2);background:var(--bg2);}
 
-/* sliding nav */
-.nav-shell{display:inline-flex;position:relative;background:var(--bg2);border-radius:var(--radius);padding:3px;margin-bottom:1.75rem;}
+/* nav */
+#nav{margin-bottom:1.75rem;}
+.nav-shell{display:inline-flex;position:relative;background:var(--bg2);border-radius:var(--radius);padding:3px;}
 .nav-bubble{position:absolute;top:3px;height:calc(100% - 6px);background:var(--bg);border-radius:7px;border:0.5px solid var(--border2);box-shadow:0 1px 4px rgba(0,0,0,0.08);transition:transform 0.22s cubic-bezier(0.4,0,0.2,1),width 0.22s cubic-bezier(0.4,0,0.2,1);pointer-events:none;z-index:0;}
-.nav-tab{position:relative;z-index:1;padding:7px 20px;border:none;background:transparent;border-radius:7px;font-size:14px;color:var(--text2);cursor:pointer;transition:color 0.15s;white-space:nowrap;}
+.nav-tab{position:relative;z-index:1;padding:7px 20px;border:none;background:transparent;border-radius:7px;font-size:14px;color:var(--text2);cursor:pointer;white-space:nowrap;transition:color 0.15s;}
 .nav-tab.active{color:var(--text);font-weight:500;}
 
 /* active display */
@@ -53,7 +54,7 @@ input{font-family:inherit;}
 .a-chip-rm{border:none;background:transparent;color:var(--text3);font-size:14px;line-height:1;padding:0 1px;cursor:pointer;}
 .a-chip-rm:hover{color:var(--text);}
 
-/* tag add button + panel */
+/* tag panel */
 .tag-add-btn{background:transparent;border:0.5px dashed var(--border2);color:var(--text3);font-size:12px;padding:5px 12px;border-radius:20px;margin-bottom:0.875rem;}
 .tag-add-btn:hover{color:var(--text2);border-color:var(--text3);}
 .tag-panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:0.875rem 1.125rem;margin-bottom:0.875rem;}
@@ -97,7 +98,7 @@ input{font-family:inherit;}
 .pie-wrap{display:flex;align-items:center;gap:1.5rem;margin-bottom:1.75rem;padding:1.25rem;background:var(--bg2);border-radius:var(--radius-lg);}
 .pie-legend{display:flex;flex-direction:column;gap:7px;flex:1;min-width:0;}
 .pie-li{display:flex;align-items:center;gap:8px;font-size:13px;}
-.pie-swatch{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.pie-sw{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
 .pie-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pie-val{font-family:var(--mono);font-size:12px;color:var(--text2);}
 .cat-bars{display:flex;flex-direction:column;gap:16px;margin-bottom:1.75rem;}
@@ -108,8 +109,8 @@ input{font-family:inherit;}
 .bar-fill{height:100%;border-radius:3px;}
 .tag-bk{display:flex;flex-direction:column;gap:3px;padding-left:10px;}
 .tag-bk-item{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);}
-.tag-bk-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;}
-.tag-bk-val{font-family:var(--mono);flex-shrink:0;}
+.tag-bk-n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;}
+.tag-bk-v{font-family:var(--mono);flex-shrink:0;}
 .sec-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);margin-bottom:8px;}
 
 /* session list */
@@ -167,8 +168,13 @@ input{font-family:inherit;}
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="shell">
+  <div id="topbar"></div>
+  <div id="nav"></div>
+  <div id="content"></div>
+</div>
 <script>
+// ── constants ──────────────────────────────────────────────────────────────
 const CAT_COLORS=["#378ADD","#EF9F27","#1D9E75","#D85A30","#7F77DD","#D4537E","#639922","#E24B4A"];
 const DEFAULT_CATS=[
   {id:"work",name:"Work",color:"#378ADD"},
@@ -178,13 +184,10 @@ const DEFAULT_CATS=[
   {id:"leisure",name:"Leisure",color:"#7F77DD"},
 ];
 const LKEY="tt-v3",GKEY="tt-gist",TKEY="tt-token",GIST_FILE="time-tracker-data.json";
+const TABS=["tracker","insights","tags"];
 
 // ── state ──────────────────────────────────────────────────────────────────
 let data={categories:[...DEFAULT_CATS],sessions:[],activeSession:null,tagPools:{}};
-// data.tagPools = { [catId]: string[] }
-// session = { id, categoryId, tags:string[], startTime, endTime }
-// activeSession = { categoryId, tags:string[], startTime }
-
 let view="tracker",period="today";
 let showSettings=false,addingCat=false,showTagInput=false;
 let expandedSid=null,expandedAddingTag=false;
@@ -192,10 +195,10 @@ let syncState="idle",syncMsg="",saveTimer=null;
 let token="",gistId="";
 
 // ── storage ────────────────────────────────────────────────────────────────
-function lsave(d){try{localStorage.setItem(LKEY,JSON.stringify(d));}catch{}}
-function lload(){try{const s=localStorage.getItem(LKEY);if(s)return JSON.parse(s);}catch{}return null;}
+function lsave(d){try{localStorage.setItem(LKEY,JSON.stringify(d));}catch(e){console.warn("lsave",e);}}
+function lload(){try{const s=localStorage.getItem(LKEY);return s?JSON.parse(s):null;}catch(e){return null;}}
 
-// ── gist sync ──────────────────────────────────────────────────────────────
+// ── gist ───────────────────────────────────────────────────────────────────
 const ghH=()=>({"Authorization":"token "+token,"Content-Type":"application/json"});
 async function gLoad(id){
   const r=await fetch("https://api.github.com/gists/"+id,{headers:ghH()});
@@ -221,32 +224,30 @@ async function findOrCreate(){
 }
 async function syncLoad(){
   if(!token||!gistId)return;
-  try{setSS("syncing","");bumpDot();data=await gLoad(gistId);lsave(data);setSS("ok","");bumpDot();render();}
+  try{setSS("syncing");bumpDot();data=await gLoad(gistId);lsave(data);setSS("ok");bumpDot();renderContent();}
   catch(e){setSS("error",e.message);bumpDot();}
 }
 function schedSave(){clearTimeout(saveTimer);saveTimer=setTimeout(doPush,800);}
 async function doPush(){
   if(!token||!gistId){lsave(data);return;}
-  try{setSS("syncing","");bumpDot();await gSave(gistId,data);lsave(data);setSS("ok","");bumpDot();}
+  try{setSS("syncing");bumpDot();await gSave(gistId,data);lsave(data);setSS("ok");bumpDot();}
   catch(e){setSS("error","Save failed");bumpDot();}
 }
-function setSS(s,m){syncState=s;syncMsg=m;}
+function setSS(s,m){syncState=s;syncMsg=m||"";}
 function bumpDot(){
   const el=document.getElementById("sync-dot");if(!el)return;
   el.className="sync-dot "+syncState;
-  el.title={idle:"",syncing:"Syncing…",ok:"Saved",error:"Error: "+syncMsg}[syncState]||"";
 }
 
-// ── tag pool helpers ───────────────────────────────────────────────────────
-function poolFor(catId){return data.tagPools[catId]||[];}
-function addToPool(catId,tag){
+// ── tag pool ───────────────────────────────────────────────────────────────
+function poolFor(cid){return data.tagPools[cid]||[];}
+function addToPool(cid,tag){
   if(!tag.trim())return;
-  const pool=poolFor(catId);
-  if(!pool.includes(tag)){data.tagPools={...data.tagPools,[catId]:[...pool,tag]};}
+  const p=poolFor(cid);
+  if(!p.includes(tag))data.tagPools={...data.tagPools,[cid]:[...p,tag]};
 }
-function removeFromPool(catId,tag){
-  const pool=poolFor(catId).filter(t=>t!==tag);
-  data.tagPools={...data.tagPools,[catId]:pool};
+function removeFromPool(cid,tag){
+  data.tagPools={...data.tagPools,[cid]:poolFor(cid).filter(t=>t!==tag)};
 }
 
 // ── mutations ──────────────────────────────────────────────────────────────
@@ -262,12 +263,12 @@ function startCat(id){
     data={...data,sessions,activeSession:{categoryId:id,tags:[],startTime:now}};
     showTagInput=false;
   }
-  schedSave();render();
+  schedSave();renderContent();
 }
 
 function addActiveTag(){
   const inp=document.getElementById("tag-in");
-  const val=inp?.value?.trim();
+  const val=(inp?.value||"").trim();
   if(!val||!data.activeSession)return;
   const tags=data.activeSession.tags||[];
   if(tags.includes(val)){inp.value="";return;}
@@ -275,55 +276,84 @@ function addActiveTag(){
   data={...data,activeSession:{...data.activeSession,tags:[...tags,val]}};
   inp.value="";
   schedSave();
-  // partial re-render: just update tag display + timer box without destroying input
-  rerenderActiveDisplay();
-  rerenderTagPanel();
+  // update only the display and pool chips, keep input focused
+  const ad=document.getElementById("active-display-el");
+  if(ad)ad.outerHTML=buildActiveDisplay();
+  updatePoolChips();
 }
 
 function removeActiveTag(tag){
   if(!data.activeSession)return;
   data={...data,activeSession:{...data.activeSession,tags:(data.activeSession.tags||[]).filter(t=>t!==tag)}};
-  schedSave();rerenderActiveDisplay();
+  schedSave();
+  const ad=document.getElementById("active-display-el");
+  if(ad)ad.outerHTML=buildActiveDisplay();
+}
+
+function pickPoolTag(tag){
+  if(!data.activeSession)return;
+  const tags=data.activeSession.tags||[];
+  if(tags.includes(tag))return;
+  data={...data,activeSession:{...data.activeSession,tags:[...tags,tag]}};
+  schedSave();
+  const ad=document.getElementById("active-display-el");
+  if(ad)ad.outerHTML=buildActiveDisplay();
+  updatePoolChips();
+}
+
+function updatePoolChips(){
+  const el=document.getElementById("pool-chips-el");
+  if(!el||!data.activeSession)return;
+  const cid=data.activeSession.categoryId;
+  const pool=poolFor(cid).filter(t=>!(data.activeSession.tags||[]).includes(t));
+  el.innerHTML=pool.map(t=>`<button class="pool-chip" onclick="pickPoolTag('${esc(t)}')">${esc(t)}</button>`).join("");
 }
 
 function addSessionTag(sid){
   const inp=document.getElementById("sedit-in-"+sid);
-  const val=inp?.value?.trim();
+  const val=(inp?.value||"").trim();
   if(!val)return;
   const sessions=data.sessions.map(s=>{
     if(s.id!==sid)return s;
-    const tags=(s.tags||[]).includes(val)?s.tags:[...s.tags,val];
+    if((s.tags||[]).includes(val))return s;
     addToPool(s.categoryId,val);
-    return{...s,tags};
+    return{...s,tags:[...(s.tags||[]),val]};
   });
   data={...data,sessions};
   schedSave();renderContent();
 }
 
 function removeSessionTag(sid,tag){
-  const sessions=data.sessions.map(s=>s.id===sid?{...s,tags:(s.tags||[]).filter(t=>t!==tag)}:s);
-  data={...data,sessions};schedSave();renderContent();
+  data={...data,sessions:data.sessions.map(s=>s.id===sid?{...s,tags:(s.tags||[]).filter(t=>t!==tag)}:s)};
+  schedSave();renderContent();
 }
 
-function deletePoolTag(catId,tag){
-  removeFromPool(catId,tag);
-  // remove from active session tags if present
-  if(data.activeSession?.categoryId===catId){
+function pickSessionPoolTag(sid,tag){
+  data={...data,sessions:data.sessions.map(s=>{
+    if(s.id!==sid||(s.tags||[]).includes(tag))return s;
+    return{...s,tags:[...(s.tags||[]),tag]};
+  })};
+  schedSave();renderContent();
+}
+
+function deletePoolTag(cid,tag){
+  removeFromPool(cid,tag);
+  if(data.activeSession?.categoryId===cid){
     data={...data,activeSession:{...data.activeSession,tags:(data.activeSession.tags||[]).filter(t=>t!==tag)}};
   }
   schedSave();renderContent();
 }
 
 function removeCat(id){
-  if(data.activeSession?.categoryId===id)data={...data,activeSession:null,showTagInput:false};
+  if(data.activeSession?.categoryId===id){data={...data,activeSession:null};showTagInput=false;}
   data={...data,categories:data.categories.filter(c=>c.id!==id)};
-  schedSave();render();
+  schedSave();renderContent();
 }
 
 function addCat(name){
   if(!name.trim())return;
   data={...data,categories:[...data.categories,{id:"c"+Date.now(),name:name.trim(),color:CAT_COLORS[data.categories.length%CAT_COLORS.length]}]};
-  schedSave();render();
+  schedSave();renderContent();
 }
 
 // ── analytics ──────────────────────────────────────────────────────────────
@@ -342,47 +372,47 @@ function getSessions(p){
   });
 }
 function getStats(p){
-  const sessions=getSessions(p),stats={};
-  data.categories.forEach(c=>{stats[c.id]=0;});
-  sessions.forEach(s=>{if(s.categoryId in stats)stats[s.categoryId]+=(s.endTime-s.startTime);});
+  const stats={};data.categories.forEach(c=>{stats[c.id]=0;});
+  getSessions(p).forEach(s=>{if(s.categoryId in stats)stats[s.categoryId]+=(s.endTime-s.startTime);});
   return stats;
 }
-function getTagStats(p,catId){
+function getTagStats(p,cid){
   const stats={};
-  getSessions(p).filter(s=>s.categoryId===catId).forEach(s=>{
+  getSessions(p).filter(s=>s.categoryId===cid).forEach(s=>{
     (s.tags||[]).forEach(t=>{stats[t]=(stats[t]||0)+(s.endTime-s.startTime);});
   });
   return Object.entries(stats).sort((a,b)=>b[1]-a[1]);
 }
 function getDailyAvg(p){
   if(p==="today")return null;
-  const sessions=getSessions(p);if(!sessions.length)return null;
-  const days=new Set(sessions.map(s=>dayKey(s.startTime)));
-  return sessions.reduce((a,s)=>a+(s.endTime-s.startTime),0)/days.size;
+  const ss=getSessions(p);if(!ss.length)return null;
+  const days=new Set(ss.map(s=>dayKey(s.startTime)));
+  return ss.reduce((a,s)=>a+(s.endTime-s.startTime),0)/days.size;
 }
-function tagUseCount(catId,tag){return data.sessions.filter(s=>s.categoryId===catId&&(s.tags||[]).includes(tag)).length;}
+function tagUseCount(cid,tag){
+  return data.sessions.filter(s=>s.categoryId===cid&&(s.tags||[]).includes(tag)).length;
+}
 
 // ── formatters ─────────────────────────────────────────────────────────────
 function fmt(sec){
   const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
-  if(h>0)return`${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-  return`${m}:${String(s).padStart(2,"0")}`;
+  return h>0?`${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${m}:${String(s).padStart(2,"0")}`;
 }
 function fmtMs(ms){
   if(ms<60000)return`${Math.round(ms/1000)}s`;
   const h=ms/3600000;return h<1?`${Math.round(ms/60000)}m`:`${h.toFixed(1)}h`;
 }
-function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
 
 // ── pie ────────────────────────────────────────────────────────────────────
 function makePie(slices,sz){
   const total=slices.reduce((a,s)=>a+s.v,0);
   if(!total)return`<circle cx="${sz/2}" cy="${sz/2}" r="${sz/2-2}" fill="var(--bg3)"/>`;
-  const cx=sz/2,cy=sz/2,r=sz/2-2;let angle=-Math.PI/2,out="";
+  const cx=sz/2,cy=sz/2,r=sz/2-2;let a=-Math.PI/2,out="";
   slices.filter(s=>s.v>0).forEach(s=>{
     const sw=(s.v/total)*Math.PI*2;if(sw<0.001)return;
-    const x1=cx+r*Math.cos(angle),y1=cy+r*Math.sin(angle);angle+=sw;
-    const x2=cx+r*Math.cos(angle),y2=cy+r*Math.sin(angle);
+    const x1=cx+r*Math.cos(a),y1=cy+r*Math.sin(a);a+=sw;
+    const x2=cx+r*Math.cos(a),y2=cy+r*Math.sin(a);
     out+=`<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${sw>Math.PI?1:0},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${s.color}"/>`;
   });
   return out;
@@ -390,18 +420,13 @@ function makePie(slices,sz){
 
 // ── CSV export ─────────────────────────────────────────────────────────────
 function exportCSV(){
-  const sessions=getSessions(period);
-  if(!sessions.length){alert("No sessions for this period.");return;}
+  const ss=getSessions(period).filter(s=>s.endTime);
+  if(!ss.length){alert("No sessions for this period.");return;}
   const rows=[["Date","Start","End","Category","Duration (min)","Tags"]];
-  sessions.forEach(s=>{
+  ss.forEach(s=>{
     const cat=data.categories.find(c=>c.id===s.categoryId);
     const d=new Date(s.startTime);
-    const dateStr=d.toLocaleDateString();
-    const startStr=d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-    const endStr=new Date(s.endTime).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-    const mins=((s.endTime-s.startTime)/60000).toFixed(1);
-    const tagsStr=(s.tags||[]).join("; ");
-    rows.push([dateStr,startStr,endStr,cat?cat.name:"Unknown",mins,tagsStr]);
+    rows.push([d.toLocaleDateString(),d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),new Date(s.endTime).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),cat?cat.name:"Unknown",((s.endTime-s.startTime)/60000).toFixed(1),(s.tags||[]).join("; ")]);
   });
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
   const a=document.createElement("a");
@@ -410,19 +435,7 @@ function exportCSV(){
   a.click();
 }
 
-// ── partial re-renders (avoid destroying focused input) ───────────────────
-function rerenderActiveDisplay(){
-  const el=document.getElementById("active-display-el");
-  if(!el)return;
-  el.outerHTML=buildActiveDisplay();
-}
-function rerenderTagPanel(){
-  const el=document.getElementById("tag-panel-el");
-  if(!el)return;
-  el.outerHTML=buildTagPanel();
-}
-
-// ── build HTML pieces ──────────────────────────────────────────────────────
+// ── build pieces ───────────────────────────────────────────────────────────
 function buildActiveDisplay(){
   const ac=data.activeSession?data.categories.find(c=>c.id===data.activeSession.categoryId):null;
   const elapsed=data.activeSession?Math.floor((Date.now()-data.activeSession.startTime)/1000):0;
@@ -443,34 +456,77 @@ function buildActiveDisplay(){
   return h+`</div>`;
 }
 
-function buildTagPanel(){
-  if(!data.activeSession)return`<span id="tag-panel-el"></span>`;
-  const catId=data.activeSession.categoryId;
-  const pool=poolFor(catId).filter(t=>!(data.activeSession.tags||[]).includes(t));
-  if(!showTagInput){
-    return`<span id="tag-panel-el"><button class="tag-add-btn" onclick="openTagInput()">+ Add tag</button></span>`;
+// ── render functions ───────────────────────────────────────────────────────
+function renderTopbar(){
+  document.getElementById("topbar").innerHTML=
+    `<div class="tb-title">Time Tracker</div>`+
+    `<div class="tb-right"><span class="sync-dot ${syncState}" id="sync-dot"></span>`+
+    `<button class="icon-btn" onclick="toggleSettings()">${showSettings?"←":"⚙"}</button></div>`;
+}
+
+function renderNav(){
+  // Only render nav when not in settings
+  const navEl=document.getElementById("nav");
+  if(showSettings){navEl.innerHTML="";return;}
+  navEl.innerHTML=
+    `<div class="nav-shell" id="nav-shell">`+
+    `<div class="nav-bubble" id="nav-bubble"></div>`+
+    TABS.map(t=>`<button class="nav-tab${view===t?" active":""}" id="nav-tab-${t}" onclick="setView('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join("")+
+    `</div>`;
+  positionBubble(false);
+}
+
+function positionBubble(animate){
+  const bubble=document.getElementById("nav-bubble");
+  const tab=document.getElementById("nav-tab-"+view);
+  if(!bubble||!tab)return;
+  if(!animate){bubble.style.transition="none";}
+  bubble.style.transform=`translateX(${tab.offsetLeft}px)`;
+  bubble.style.width=tab.offsetWidth+"px";
+  if(!animate){
+    // re-enable transition after first paint
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{bubble.style.transition="";}));
   }
-  let h=`<div id="tag-panel-el">`;
-  h+=`<div class="tag-panel"><div class="tag-panel-title">Add tag</div>`;
-  h+=`<div class="tag-input-row"><input class="inp" id="tag-in" type="text" placeholder="New tag or choose below…" onkeydown="if(event.key==='Enter'){event.preventDefault();addActiveTag();}"><button class="tag-set-btn" onclick="addActiveTag()">Add</button></div>`;
-  if(pool.length)h+=`<div class="pool-chips">${pool.map(t=>`<button class="pool-chip" onclick="pickPoolTag('${esc(t)}')">${esc(t)}</button>`).join("")}</div>`;
-  h+=`</div></div>`;
-  return h;
 }
 
-function openTagInput(){showTagInput=true;renderContent();setTimeout(()=>document.getElementById("tag-in")?.focus(),30);}
-function pickPoolTag(tag){
-  if(!data.activeSession)return;
-  const tags=data.activeSession.tags||[];
-  if(tags.includes(tag))return;
-  data={...data,activeSession:{...data.activeSession,tags:[...tags,tag]}};
-  schedSave();rerenderActiveDisplay();rerenderTagPanel();
+function renderContent(){
+  const el=document.getElementById("content");
+  if(showSettings){el.innerHTML=buildSettings();return;}
+  if(view==="tracker")el.innerHTML=buildTracker();
+  else if(view==="insights")el.innerHTML=buildInsights();
+  else el.innerHTML=buildTags();
 }
 
-// ── render: tracker ────────────────────────────────────────────────────────
-function renderTracker(){
+function setView(v){
+  view=v;
+  // update active tab class
+  TABS.forEach(t=>{
+    const tab=document.getElementById("nav-tab-"+t);
+    if(tab)tab.classList.toggle("active",t===v);
+  });
+  // slide bubble
+  positionBubble(true);
+  // swap content
+  renderContent();
+}
+
+// ── build: tracker ─────────────────────────────────────────────────────────
+function buildTracker(){
   let h=buildActiveDisplay();
-  h+=buildTagPanel();
+  // tag panel
+  if(data.activeSession){
+    if(!showTagInput){
+      h+=`<button class="tag-add-btn" onclick="openTagInput()">+ Add tag</button>`;
+    }else{
+      const cid=data.activeSession.categoryId;
+      const pool=poolFor(cid).filter(t=>!(data.activeSession.tags||[]).includes(t));
+      h+=`<div class="tag-panel"><div class="tag-panel-title">Add tag</div>`;
+      h+=`<div class="tag-input-row"><input class="inp" id="tag-in" type="text" placeholder="New tag or choose below…" onkeydown="if(event.key==='Enter'){event.preventDefault();addActiveTag();}"><button class="tag-set-btn" onclick="addActiveTag()">Add</button></div>`;
+      if(pool.length)h+=`<div class="pool-chips" id="pool-chips-el">${pool.map(t=>`<button class="pool-chip" onclick="pickPoolTag('${esc(t)}')">${esc(t)}</button>`).join("")}</div>`;
+      else h+=`<div id="pool-chips-el"></div>`;
+      h+=`</div>`;
+    }
+  }
   h+=`<div class="cat-list">`;
   data.categories.forEach(cat=>{
     const isActive=data.activeSession?.categoryId===cat.id;
@@ -485,10 +541,12 @@ function renderTracker(){
   return h+`</div>`;
 }
 
-// ── render: insights ───────────────────────────────────────────────────────
-function renderInsights(){
+function openTagInput(){showTagInput=true;renderContent();setTimeout(()=>document.getElementById("tag-in")?.focus(),30);}
+
+// ── build: insights ────────────────────────────────────────────────────────
+function buildInsights(){
   const stats=getStats(period);
-  const sessions=getSessions(period);
+  const ss=getSessions(period);
   const total=Object.values(stats).reduce((a,b)=>a+b,0);
   const sorted=data.categories.map(c=>({...c,ms:stats[c.id]||0})).sort((a,b)=>b.ms-a.ms);
   const avg=getDailyAvg(period);
@@ -502,7 +560,7 @@ function renderInsights(){
   if(total>0){
     const sz=120;
     h+=`<div class="pie-wrap"><svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;border-radius:50%;overflow:hidden">${makePie(sorted.map(c=>({v:c.ms,color:c.color})),sz)}</svg><div class="pie-legend">`;
-    sorted.filter(c=>c.ms>0).forEach(c=>{h+=`<div class="pie-li"><span class="pie-swatch" style="background:${c.color}"></span><span class="pie-name">${esc(c.name)}</span><span class="pie-val">${Math.round(c.ms/total*100)}%</span></div>`;});
+    sorted.filter(c=>c.ms>0).forEach(c=>{h+=`<div class="pie-li"><span class="pie-sw" style="background:${c.color}"></span><span class="pie-name">${esc(c.name)}</span><span class="pie-val">${Math.round(c.ms/total*100)}%</span></div>`;});
     h+=`</div></div>`;
   }
   h+=`<div class="cat-bars">`;
@@ -510,11 +568,11 @@ function renderInsights(){
     const pct=total>0?Math.round(cat.ms/total*100):0;
     const ts=getTagStats(period,cat.id);
     h+=`<div><div class="bar-head"><span>${esc(cat.name)}${cat.ms>0?`<span class="bar-pct">${pct}%</span>`:""}</span><span class="bar-time">${cat.ms>0?fmtMs(cat.ms):"–"}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${cat.color}"></div></div>`;
-    if(ts.length){h+=`<div class="tag-bk">`;ts.forEach(([t,ms])=>{h+=`<div class="tag-bk-item"><span class="tag-bk-name">↳ ${esc(t)}</span><span class="tag-bk-val">${fmtMs(ms)}</span></div>`;});h+=`</div>`;}
+    if(ts.length){h+=`<div class="tag-bk">`;ts.forEach(([t,ms])=>{h+=`<div class="tag-bk-item"><span class="tag-bk-n">↳ ${esc(t)}</span><span class="tag-bk-v">${fmtMs(ms)}</span></div>`;});h+=`</div>`;}
     h+=`</div>`;
   });
   h+=`</div>`;
-  const disp=sessions.filter(s=>s.endTime);
+  const disp=ss.filter(s=>s.endTime);
   if(disp.length){
     h+=`<div class="sec-label">Sessions</div><div class="session-list">`;
     disp.slice(-25).reverse().forEach(s=>{
@@ -523,14 +581,13 @@ function renderInsights(){
       const d=new Date(s.startTime);
       const tStr=period==="today"?d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):`${d.toLocaleDateString([],{month:"short",day:"numeric"})} · ${d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`;
       const isExp=expandedSid===s.id;
-      const tagsList=(s.tags||[]);
-      const nameStr=cat.name+(tagsList.length?` · ${tagsList.join(", ")}`:""  );
+      const tagsList=s.tags||[];
+      const nameStr=cat.name+(tagsList.length?" · "+tagsList.join(", "):"");
       h+=`<div class="s-item" style="border-left-color:${cat.color}">`;
       h+=`<div class="s-head" onclick="toggleSession('${s.id}')"><div class="s-main"><div class="s-name">${esc(nameStr)}</div><div class="s-time">${tStr}</div></div><span class="s-dur">${fmt(dur)}</span><span class="s-caret">${isExp?"▲":"▼"}</span></div>`;
       if(isExp){
         const pool=poolFor(s.categoryId).filter(t=>!tagsList.includes(t));
-        h+=`<div class="s-edit">`;
-        h+=`<div class="s-edit-chips">`;
+        h+=`<div class="s-edit"><div class="s-edit-chips">`;
         tagsList.forEach(t=>{h+=`<span class="s-chip">${esc(t)}<button class="s-chip-rm" onclick="removeSessionTag('${s.id}','${esc(t)}')">×</button></span>`;});
         if(!expandedAddingTag)h+=`<button class="s-add-btn" onclick="openSessionTagInput('${s.id}')">+ tag</button>`;
         h+=`</div>`;
@@ -549,8 +606,8 @@ function renderInsights(){
   return h;
 }
 
-// ── render: tags tab ───────────────────────────────────────────────────────
-function renderTags(){
+// ── build: tags ────────────────────────────────────────────────────────────
+function buildTags(){
   let h="";
   data.categories.forEach(cat=>{
     const pool=poolFor(cat.id);
@@ -559,141 +616,54 @@ function renderTags(){
       h+=`<div class="tag-mgmt-list">`;
       pool.forEach(tag=>{
         const count=tagUseCount(cat.id,tag);
-        h+=`<div class="tag-mgmt-item"><span class="tag-mgmt-name">${esc(tag)}</span><span class="tag-mgmt-count">${count} session${count!==1?"s":""}</span><button class="tag-mgmt-del" onclick="deletePoolTag('${cat.id}','${esc(tag)}')" title="Remove from pool">×</button></div>`;
+        h+=`<div class="tag-mgmt-item"><span class="tag-mgmt-name">${esc(tag)}</span><span class="tag-mgmt-count">${count} session${count!==1?"s":""}</span><button class="tag-mgmt-del" onclick="deletePoolTag('${esc(cat.id)}','${esc(tag)}')">×</button></div>`;
       });
       h+=`</div>`;
     }else{
-      h+=`<div class="tags-empty">No tags yet for this category.</div>`;
+      h+=`<div class="tags-empty">No tags yet.</div>`;
     }
     h+=`</div>`;
   });
-  return h||`<div class="empty">No categories exist yet.</div>`;
+  return h||`<div class="empty">No categories yet.</div>`;
 }
 
-// ── render: settings ───────────────────────────────────────────────────────
-function renderSettings(){
+// ── build: settings ────────────────────────────────────────────────────────
+function buildSettings(){
   const connected=!!(token&&gistId);
   let h=`<div class="setup-card"><div class="setup-title">GitHub sync</div>`;
   if(connected){
     h+=`<div class="setup-desc">Connected. Data syncs automatically via a private GitHub Gist.</div><div class="setup-field"><label>Gist ID</label><input class="inp" value="${esc(gistId)}" readonly style="font-family:var(--mono);font-size:12px;color:var(--text3)"></div><div class="setup-actions"><button class="sm-btn" onclick="syncLoad()">Sync now</button><button class="danger-btn" onclick="disconnect()">Disconnect</button></div>`;
   }else{
-    h+=`<div class="setup-desc">Connect GitHub to sync across devices. Data is stored in a <strong>private</strong> Gist only you can see.<br><br><strong>Steps:</strong><br>1. Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>2. Give it any name, e.g. "Time Tracker"<br>3. Under <em>Select scopes</em>, check <strong>gist</strong> only<br>4. Click "Generate token" and paste below</div><div class="setup-field"><label>Personal Access Token</label><input class="inp" id="tok-in" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div><div id="setup-msg"></div><div class="setup-actions"><button class="primary-btn" id="conn-btn" onclick="doConnect()">Connect</button></div>`;
+    h+=`<div class="setup-desc">Connect GitHub to sync across devices. Stored in a <strong>private</strong> Gist only you can see.<br><br><strong>Steps:</strong><br>1. Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>2. Give it any name, e.g. "Time Tracker"<br>3. Check <strong>gist</strong> scope only<br>4. Generate token and paste below</div><div class="setup-field"><label>Personal Access Token</label><input class="inp" id="tok-in" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div><div id="setup-msg"></div><div class="setup-actions"><button class="primary-btn" id="conn-btn" onclick="doConnect()">Connect</button></div>`;
   }
   return h+`</div>`;
 }
 
-// ── nav bubble positioning ─────────────────────────────────────────────────
-const TABS=["tracker","insights","tags"];
-function positionBubble(){
-  const shell=document.getElementById("nav-shell");if(!shell)return;
-  const tabs=shell.querySelectorAll(".nav-tab");
-  const idx=TABS.indexOf(view);if(idx<0||!tabs[idx])return;
-  const tab=tabs[idx];
-  const bubble=document.getElementById("nav-bubble");if(!bubble)return;
-  bubble.style.transform=`translateX(${tab.offsetLeft}px)`;
-  bubble.style.width=tab.offsetWidth+"px";
-}
-
-// ── full render ────────────────────────────────────────────────────────────
-function render(){
+// ── ui handlers ────────────────────────────────────────────────────────────
+function setPeriod(p){period=p;renderContent();}
+function toggleSettings(){
+  showSettings=!showSettings;
   renderTopbar();
   renderNav();
   renderContent();
 }
-
-function renderTopbar(){
-  const el=document.getElementById("app");
-  if(!el)return;
-  // just re-render everything since topbar is tiny
-}
-
-function renderNav(){
-  // handled in render() below
-}
-
-function renderContent(){
-  const appEl=document.getElementById("app");
-  const dot=syncState;
-  let h=`<div class="topbar"><div class="topbar-title">Time Tracker</div><div class="topbar-right"><span class="sync-dot ${dot}" id="sync-dot" title="${{idle:"",syncing:"Syncing…",ok:"Saved",error:"Error"}[dot]||""}"></span><button class="icon-btn" onclick="toggleSettings()">${showSettings?"←":"⚙"}</button></div></div>`;
-  if(showSettings){
-    appEl.innerHTML=h+renderSettings();return;
-  }
-  // nav shell — persists, bubble slides
-  h+=`<div class="nav-shell" id="nav-shell"><div class="nav-bubble" id="nav-bubble"></div>`;
-  TABS.forEach(t=>{h+=`<button class="nav-tab${view===t?" active":""}" onclick="setView('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`;});
-  h+=`</div>`;
-  h+=view==="tracker"?renderTracker():view==="insights"?renderInsights():renderTags();
-  appEl.innerHTML=h;
-  // position bubble after DOM update
-  requestAnimationFrame(()=>{
-    const shell=document.getElementById("nav-shell");if(!shell)return;
-    const tabs=shell.querySelectorAll(".nav-tab");
-    const idx=TABS.indexOf(view);if(idx<0||!tabs[idx])return;
-    const bubble=document.getElementById("nav-bubble");if(!bubble)return;
-    // set initial position without transition so it snaps on first paint
-    bubble.style.transition="none";
-    bubble.style.transform=`translateX(${tabs[idx].offsetLeft}px)`;
-    bubble.style.width=tabs[idx].offsetWidth+"px";
-    requestAnimationFrame(()=>{bubble.style.transition="";});
-  });
-}
-
-// set view WITH animated bubble
-function setView(v){
-  const prev=view;view=v;
-  if(prev===v){renderContent();return;}
-  // animate bubble before re-rendering
-  const shell=document.getElementById("nav-shell");
-  if(shell){
-    const tabs=shell.querySelectorAll(".nav-tab");
-    const idx=TABS.indexOf(v);
-    if(idx>=0&&tabs[idx]){
-      const bubble=document.getElementById("nav-bubble");
-      if(bubble){
-        bubble.style.transform=`translateX(${tabs[idx].offsetLeft}px)`;
-        bubble.style.width=tabs[idx].offsetWidth+"px";
-      }
-    }
-    // update active class
-    tabs.forEach((t,i)=>t.classList.toggle("active",TABS[i]===v));
-    // re-render content after a tick so bubble animates
-    setTimeout(renderContent,0);
-  }else{
-    renderContent();
-  }
-}
-
-// ── ui handlers ────────────────────────────────────────────────────────────
-function setPeriod(p){period=p;renderContent();}
-function toggleSettings(){showSettings=!showSettings;renderContent();}
 function toggleAddCat(){addingCat=!addingCat;renderContent();if(addingCat)setTimeout(()=>document.getElementById("new-cat-in")?.focus(),30);}
 function submitCat(){const v=document.getElementById("new-cat-in")?.value||"";if(v.trim()){addCat(v);addingCat=false;}}
 function newCatKey(ev){if(ev.key==="Enter")submitCat();if(ev.key==="Escape"){addingCat=false;renderContent();}}
-function toggleSession(id){
-  expandedSid=expandedSid===id?null:id;
-  expandedAddingTag=false;
-  renderContent();
-}
+function toggleSession(id){expandedSid=expandedSid===id?null:id;expandedAddingTag=false;renderContent();}
 function openSessionTagInput(sid){expandedAddingTag=true;renderContent();setTimeout(()=>document.getElementById("sedit-in-"+sid)?.focus(),30);}
 function closeSessionTagInput(){expandedAddingTag=false;renderContent();}
-function pickSessionPoolTag(sid,tag){
-  const sessions=data.sessions.map(s=>{
-    if(s.id!==sid)return s;
-    const tags=(s.tags||[]).includes(tag)?s.tags:[...s.tags,tag];
-    return{...s,tags};
-  });
-  data={...data,sessions};schedSave();renderContent();
-}
 
 async function doConnect(){
-  const tok=document.getElementById("tok-in")?.value?.trim();
+  const tok=(document.getElementById("tok-in")?.value||"").trim();
   const msgEl=document.getElementById("setup-msg"),btn=document.getElementById("conn-btn");
   if(!tok){msgEl.innerHTML=`<div class="fl-msg error">Please enter a token.</div>`;return;}
   btn.disabled=true;btn.textContent="Connecting…";
   try{
     token=tok;gistId=await findOrCreate();
     localStorage.setItem(TKEY,token);localStorage.setItem(GKEY,gistId);
-    await syncLoad();showSettings=false;renderContent();
+    await syncLoad();showSettings=false;
+    renderTopbar();renderNav();renderContent();
   }catch(ex){
     token="";gistId="";
     msgEl.innerHTML=`<div class="fl-msg error">Failed: ${esc(ex.message)}</div>`;
@@ -704,10 +674,10 @@ function disconnect(){
   if(!confirm("Disconnect? Local data stays."))return;
   token="";gistId="";
   localStorage.removeItem(TKEY);localStorage.removeItem(GKEY);
-  renderContent();
+  renderTopbar();renderContent();
 }
 
-// ── tick (only update clock label) ────────────────────────────────────────
+// ── clock tick ─────────────────────────────────────────────────────────────
 setInterval(()=>{
   if(!data.activeSession||view!=="tracker"||showSettings)return;
   const el=document.getElementById("timer-el");
@@ -716,11 +686,16 @@ setInterval(()=>{
 
 // ── init ───────────────────────────────────────────────────────────────────
 (function(){
-  const saved=lload();if(saved)data=saved;
+  try{
+    const saved=lload();
+    if(saved&&saved.categories)data=saved;
+  }catch(e){console.warn("load error",e);}
   token=localStorage.getItem(TKEY)||"";
   gistId=localStorage.getItem(GKEY)||"";
-  if(token&&gistId)syncLoad();
+  renderTopbar();
+  renderNav();
   renderContent();
+  if(token&&gistId)syncLoad();
 })();
 </script>
 </body>
