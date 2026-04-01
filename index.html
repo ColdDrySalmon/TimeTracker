@@ -233,7 +233,7 @@ const DEFAULT_CATS=[
   {id:"family",name:"Family",color:"#D85A30"},
   {id:"leisure",name:"Leisure",color:"#7F77DD"},
 ];
-const LKEY="tt-v3",GKEY="tt-gist",TKEY="tt-token",GIST_FILE="time-tracker-data.json";
+const LKEY="tt-v3",GKEY="tt-gist",TKEY="tt-token",AKEY="tt-ably",GIST_FILE="time-tracker-data.json";
 const TABS=["tracker","insights","manage"];
 
 // ── state ──────────────────────────────────────────────────────────────────
@@ -248,8 +248,8 @@ let activeTagFilter=null; // {catId, tag} | null
 let tagViewMode="bar"; // "pie" | "bar"
 let editingTag=null; // {catId, tag} | null
 let syncState="idle",saveTimer=null;
-let token="",gistId="";
-let lastSyncTime=0; // ms timestamp of last successful remote pull or push
+let token="",gistId="",ablyKey="";
+let ablyClient=null,ablyChannel=null;
 
 // ── storage ────────────────────────────────────────────────────────────────
 function lsave(d){try{localStorage.setItem(LKEY,JSON.stringify(d));}catch(e){}}
@@ -262,7 +262,7 @@ async function gLoad(id){
   if(!r.ok)throw new Error("HTTP "+r.status);
   const d=await r.json(),c=d.files[GIST_FILE]?.content;
   if(!c)throw new Error("File not found");
-  return{appData:JSON.parse(c),updatedAt:new Date(d.updated_at).getTime()};
+  return JSON.parse(c);
 }
 async function gSave(id,d){
   const r=await fetch("https://api.github.com/gists/"+id,{method:"PATCH",headers:ghH(),body:JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(d)}}})});
@@ -283,9 +283,7 @@ async function syncLoad(){
   if(!token||!gistId)return;
   try{
     setSS("syncing");bumpDot();
-    const{appData,updatedAt}=await gLoad(gistId);
-    data=appData;
-    lastSyncTime=updatedAt;
+    data=await gLoad(gistId);
     lsave(data);setSS("ok");bumpDot();
     renderContent();
   }catch(e){setSS("error");bumpDot();}
@@ -296,10 +294,10 @@ async function doPush(){
   try{
     setSS("syncing");bumpDot();
     await gSave(gistId,data);
-    lastSyncTime=Date.now();
     lsave(data);setSS("ok");bumpDot();
-  }
-  catch(e){setSS("error");bumpDot();}
+    // notify other devices via Ably
+    ablyNotify();
+  }catch(e){setSS("error");bumpDot();}
 }
 function setSS(s){syncState=s;}
 function bumpDot(){
@@ -307,24 +305,53 @@ function bumpDot(){
   if(el)el.className="sync-dot "+syncState;
 }
 
-// ── background poll: pull remote changes every 30s ─────────────────────────
-async function pollForUpdates(){
-  if(!token||!gistId)return;       // not connected
-  if(saveTimer)return;             // local changes pending — don't overwrite
+// ── ably real-time ─────────────────────────────────────────────────────────
+function ablyChannelName(){return"tt-"+gistId;}
+
+function ablyNotify(){
+  // publish a lightweight "go fetch" ping — no actual data in the message
+  if(!ablyChannel)return;
+  try{ablyChannel.publish("update",{t:Date.now()});}catch(e){}
+}
+
+function ablyConnect(){
+  if(!ablyKey||!gistId)return;
+  // disconnect any existing connection cleanly
+  ablyDisconnect();
   try{
-    const r=await fetch("https://api.github.com/gists/"+gistId,{headers:ghH()});
-    if(!r.ok)return;
-    const d=await r.json();
-    const remoteTime=new Date(d.updated_at).getTime();
-    if(remoteTime<=lastSyncTime)return; // nothing new on remote
-    const c=d.files[GIST_FILE]?.content;
-    if(!c)return;
-    data=JSON.parse(c);
-    lastSyncTime=remoteTime;
-    lsave(data);
-    setSS("ok");bumpDot();
-    renderContent();
-  }catch(e){} // silent fail — retries in 30s
+    // load Ably SDK from CDN if not already loaded
+    if(typeof Ably==="undefined"){
+      const s=document.createElement("script");
+      s.src="https://cdn.ably.com/lib/ably.min-2.js";
+      s.onload=()=>ablyInit();
+      document.head.appendChild(s);
+    }else{
+      ablyInit();
+    }
+  }catch(e){console.warn("Ably load:",e);}
+}
+
+function ablyInit(){
+  try{
+    ablyClient=new Ably.Realtime({key:ablyKey,autoConnect:true});
+    ablyChannel=ablyClient.channels.get(ablyChannelName());
+    ablyChannel.subscribe("update",async(msg)=>{
+      // another device pushed — pull from Gist if no local changes pending
+      if(saveTimer)return;
+      try{
+        data=await gLoad(gistId);
+        lsave(data);setSS("ok");bumpDot();
+        renderContent();
+      }catch(e){}
+    });
+  }catch(e){console.warn("Ably init:",e);}
+}
+
+function ablyDisconnect(){
+  try{
+    if(ablyChannel){ablyChannel.unsubscribe();ablyChannel=null;}
+    if(ablyClient){ablyClient.close();ablyClient=null;}
+  }catch(e){}
 }
 
 // ── tag pool helpers ───────────────────────────────────────────────────────
@@ -921,20 +948,44 @@ function buildManage(){
 // ── build: settings ────────────────────────────────────────────────────────
 function buildSettings(){
   const connected=!!(token&&gistId);
+  const ablyConnected=!!(ablyClient&&ablyChannel);
+
+  // GitHub card
   let h=`<div class="setup-card"><div class="setup-title">GitHub sync</div>`;
   if(connected){
-    h+=`<div class="setup-desc">Connected. Data syncs automatically via a private GitHub Gist.</div>`;
+    h+=`<div class="setup-desc">Connected. Data saves automatically via a private GitHub Gist.</div>`;
     h+=`<div class="setup-field"><label>Gist ID</label><input class="inp" value="${esc(gistId)}" readonly style="font-family:var(--mono);font-size:12px;color:var(--text3)"></div>`;
     h+=`<div class="setup-actions"><button class="sm-btn" onclick="syncLoad()">Sync now</button><button class="danger-btn" onclick="doDisconnect()">Disconnect</button></div>`;
   }else{
-    h+=`<div class="setup-desc">Connect GitHub to sync across devices. Stored in a <strong>private</strong> Gist only you can see.<br><br>`;
+    h+=`<div class="setup-desc">Connect GitHub to save data across devices. Stored in a <strong>private</strong> Gist only you can see.<br><br>`;
     h+=`<strong>Steps:</strong><br>1. Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>`;
     h+=`2. Give it any name, e.g. "Time Tracker"<br>3. Check <strong>gist</strong> scope only<br>4. Generate and paste the token below</div>`;
     h+=`<div class="setup-field"><label>Personal Access Token</label><input class="inp" id="tok-in" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div>`;
     h+=`<div id="setup-msg"></div>`;
     h+=`<div class="setup-actions"><button class="primary-btn" id="conn-btn" onclick="doConnect()">Connect</button></div>`;
   }
-  return h+`</div>`;
+  h+=`</div>`;
+
+  // Ably card
+  h+=`<div class="setup-card"><div class="setup-title">Real-time sync</div>`;
+  if(!connected){
+    h+=`<div class="setup-desc" style="color:var(--text3)">Connect GitHub first, then set up real-time sync.</div>`;
+  }else if(ablyConnected){
+    h+=`<div class="setup-desc">Real-time sync active. Changes on one device appear on the other instantly.</div>`;
+    h+=`<div class="setup-actions"><button class="danger-btn" onclick="doAblyDisconnect()">Disconnect</button></div>`;
+  }else{
+    h+=`<div class="setup-desc">Add an Ably API key to sync timer changes between devices instantly — no more waiting.<br><br>`;
+    h+=`<strong>Steps:</strong><br>1. Go to <a href="https://ably.com" target="_blank">ably.com</a> and create a free account<br>`;
+    h+=`2. Create an App, then go to <strong>API Keys</strong><br>`;
+    h+=`3. Copy the default key (looks like <code style="font-family:var(--mono);font-size:12px">xxxx.yyyy:zzzz</code>)<br>`;
+    h+=`4. Paste it below</div>`;
+    h+=`<div class="setup-field"><label>Ably API Key</label><input class="inp" id="ably-in" type="password" placeholder="xxxx.yyyy:zzzzzzzz"></div>`;
+    h+=`<div id="ably-msg"></div>`;
+    h+=`<div class="setup-actions"><button class="primary-btn" id="ably-btn" onclick="doAblyConnect()">Connect</button></div>`;
+  }
+  h+=`</div>`;
+
+  return h;
 }
 
 // ── render ─────────────────────────────────────────────────────────────────
@@ -1073,6 +1124,39 @@ function doDisconnect(){
   token="";gistId="";
   localStorage.removeItem(TKEY);
   localStorage.removeItem(GKEY);
+  // also tear down Ably since it depends on gistId for the channel name
+  ablyDisconnect();
+  ablyKey="";
+  localStorage.removeItem(AKEY);
+  renderContent();
+}
+
+function doAblyConnect(){
+  const keyEl=document.getElementById("ably-in");
+  const key=(keyEl?keyEl.value:"").trim();
+  const msgEl=document.getElementById("ably-msg");
+  const btn=document.getElementById("ably-btn");
+  if(!key){if(msgEl)msgEl.innerHTML=`<div class="fl-msg error">Please enter an Ably API key.</div>`;return;}
+  if(btn){btn.disabled=true;btn.textContent="Connecting…";}
+  ablyKey=key;
+  localStorage.setItem(AKEY,ablyKey);
+  // connect and wait briefly to confirm it works
+  ablyConnect();
+  setTimeout(()=>{
+    if(ablyClient&&ablyChannel){
+      renderContent(); // re-render settings to show connected state
+    }else{
+      ablyKey="";localStorage.removeItem(AKEY);
+      if(msgEl)msgEl.innerHTML=`<div class="fl-msg error">Could not connect. Check your key and try again.</div>`;
+      if(btn){btn.disabled=false;btn.textContent="Connect";}
+    }
+  },3000);
+}
+
+function doAblyDisconnect(){
+  ablyDisconnect();
+  ablyKey="";
+  localStorage.removeItem(AKEY);
   renderContent();
 }
 
@@ -1082,8 +1166,6 @@ setInterval(()=>{
   const el=document.getElementById("timer-el");
   if(el)el.textContent=fmt(Math.floor((Date.now()-data.activeSession.startTime)/1000));
 },1000);
-
-setInterval(pollForUpdates,30000);
 
 // ── init ───────────────────────────────────────────────────────────────────
 (function(){
@@ -1097,10 +1179,14 @@ setInterval(pollForUpdates,30000);
   try{const sv=localStorage.getItem("tt-view");if(sv&&TABS.includes(sv))view=sv;}catch(e){}
   token=localStorage.getItem(TKEY)||"";
   gistId=localStorage.getItem(GKEY)||"";
+  ablyKey=localStorage.getItem(AKEY)||"";
   renderTopbar();
   renderNav();
   renderContent();
-  if(token&&gistId)syncLoad();
+  if(token&&gistId){
+    syncLoad();
+    if(ablyKey)ablyConnect();
+  }
 })();
 </script>
 </body>
