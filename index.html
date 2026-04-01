@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Time Tracker</title>
+<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
 <style>
 :root{
   --bg:#ffffff;--bg2:#f4f4f1;--bg3:#e6e5e1;
@@ -306,45 +307,58 @@ function bumpDot(){
 }
 
 // ── ably real-time ─────────────────────────────────────────────────────────
+let ablyConnState="disconnected"; // "disconnected"|"connecting"|"connected"|"error"
+
 function ablyChannelName(){return"tt-"+gistId;}
 
 function ablyNotify(){
-  // publish a lightweight "go fetch" ping — no actual data in the message
   if(!ablyChannel)return;
   try{ablyChannel.publish("update",{t:Date.now()});}catch(e){}
 }
 
 function ablyConnect(){
   if(!ablyKey||!gistId)return;
-  // disconnect any existing connection cleanly
   ablyDisconnect();
   try{
-    // load Ably SDK from CDN if not already loaded
-    if(typeof Ably==="undefined"){
-      const s=document.createElement("script");
-      s.src="https://cdn.ably.com/lib/ably.min-2.js";
-      s.onload=()=>ablyInit();
-      document.head.appendChild(s);
-    }else{
-      ablyInit();
-    }
-  }catch(e){console.warn("Ably load:",e);}
-}
-
-function ablyInit(){
-  try{
+    ablyConnState="connecting";
     ablyClient=new Ably.Realtime({key:ablyKey,autoConnect:true});
-    ablyChannel=ablyClient.channels.get(ablyChannelName());
-    ablyChannel.subscribe("update",async(msg)=>{
-      // another device pushed — pull from Gist if no local changes pending
-      if(saveTimer)return;
-      try{
-        data=await gLoad(gistId);
-        lsave(data);setSS("ok");bumpDot();
-        renderContent();
-      }catch(e){}
+
+    // connection state events — no timeouts needed
+    ablyClient.connection.on("connected",()=>{
+      ablyConnState="connected";
+      // subscribe once we know the connection is live
+      ablyChannel=ablyClient.channels.get(ablyChannelName());
+      ablyChannel.subscribe("update",async()=>{
+        if(saveTimer)return; // local changes pending — don't overwrite
+        try{
+          data=await gLoad(gistId);
+          lsave(data);setSS("ok");bumpDot();
+          renderContent();
+        }catch(e){}
+      });
+      // re-render settings if open so status updates
+      if(showSettings)renderContent();
     });
-  }catch(e){console.warn("Ably init:",e);}
+
+    ablyClient.connection.on("failed",(err)=>{
+      ablyConnState="error";
+      console.warn("Ably connection failed:",err);
+      if(showSettings)renderContent();
+    });
+
+    ablyClient.connection.on("disconnected",()=>{
+      // Ably auto-reconnects — don't treat as permanent failure
+      ablyConnState="connecting";
+    });
+
+    ablyClient.connection.on("closed",()=>{
+      ablyConnState="disconnected";
+    });
+
+  }catch(e){
+    ablyConnState="error";
+    console.warn("Ably init error:",e);
+  }
 }
 
 function ablyDisconnect(){
@@ -352,6 +366,7 @@ function ablyDisconnect(){
     if(ablyChannel){ablyChannel.unsubscribe();ablyChannel=null;}
     if(ablyClient){ablyClient.close();ablyClient=null;}
   }catch(e){}
+  ablyConnState="disconnected";
 }
 
 // ── tag pool helpers ───────────────────────────────────────────────────────
@@ -970,14 +985,20 @@ function buildSettings(){
   h+=`<div class="setup-card"><div class="setup-title">Real-time sync</div>`;
   if(!connected){
     h+=`<div class="setup-desc" style="color:var(--text3)">Connect GitHub first, then set up real-time sync.</div>`;
-  }else if(ablyConnected){
+  }else if(ablyConnState==="connected"){
     h+=`<div class="setup-desc">Real-time sync active. Changes on one device appear on the other instantly.</div>`;
     h+=`<div class="setup-actions"><button class="danger-btn" onclick="doAblyDisconnect()">Disconnect</button></div>`;
+  }else if(ablyConnState==="connecting"){
+    h+=`<div class="setup-desc" style="color:var(--text3)">Connecting to Ably…</div>`;
+  }else if(ablyConnState==="error"){
+    h+=`<div class="setup-desc">Connection failed. Check that your API key is correct.</div>`;
+    h+=`<div class="setup-field"><label>Ably API Key</label><input class="inp" id="ably-in" type="password" placeholder="xxxx.yyyy:zzzzzzzz"></div>`;
+    h+=`<div class="setup-actions"><button class="primary-btn" id="ably-btn" onclick="doAblyConnect()">Retry</button><button class="danger-btn" onclick="doAblyDisconnect()">Clear</button></div>`;
   }else{
-    h+=`<div class="setup-desc">Add an Ably API key to sync timer changes between devices instantly — no more waiting.<br><br>`;
+    h+=`<div class="setup-desc">Add an Ably API key to sync timer changes between devices instantly.<br><br>`;
     h+=`<strong>Steps:</strong><br>1. Go to <a href="https://ably.com" target="_blank">ably.com</a> and create a free account<br>`;
-    h+=`2. Create an App, then go to <strong>API Keys</strong><br>`;
-    h+=`3. Copy the default key (looks like <code style="font-family:var(--mono);font-size:12px">xxxx.yyyy:zzzz</code>)<br>`;
+    h+=`2. Create an App (Pub/Sub), then go to <strong>API Keys</strong><br>`;
+    h+=`3. Copy the <strong>Root</strong> key (looks like <code style="font-family:var(--mono);font-size:12px">xxxx.yyyy:zzzz</code>)<br>`;
     h+=`4. Paste it below</div>`;
     h+=`<div class="setup-field"><label>Ably API Key</label><input class="inp" id="ably-in" type="password" placeholder="xxxx.yyyy:zzzzzzzz"></div>`;
     h+=`<div id="ably-msg"></div>`;
@@ -1140,17 +1161,11 @@ function doAblyConnect(){
   if(btn){btn.disabled=true;btn.textContent="Connecting…";}
   ablyKey=key;
   localStorage.setItem(AKEY,ablyKey);
-  // connect and wait briefly to confirm it works
   ablyConnect();
-  setTimeout(()=>{
-    if(ablyClient&&ablyChannel){
-      renderContent(); // re-render settings to show connected state
-    }else{
-      ablyKey="";localStorage.removeItem(AKEY);
-      if(msgEl)msgEl.innerHTML=`<div class="fl-msg error">Could not connect. Check your key and try again.</div>`;
-      if(btn){btn.disabled=false;btn.textContent="Connect";}
-    }
-  },3000);
+  // connection.on("connected") inside ablyConnect will call renderContent()
+  // if connection fails, connection.on("failed") will also call renderContent()
+  // show a "connecting…" state in the meantime
+  renderContent();
 }
 
 function doAblyDisconnect(){
