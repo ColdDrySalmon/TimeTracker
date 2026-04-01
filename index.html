@@ -249,6 +249,7 @@ let tagViewMode="bar"; // "pie" | "bar"
 let editingTag=null; // {catId, tag} | null
 let syncState="idle",saveTimer=null;
 let token="",gistId="";
+let lastSyncTime=0; // ms timestamp of last successful remote pull or push
 
 // ── storage ────────────────────────────────────────────────────────────────
 function lsave(d){try{localStorage.setItem(LKEY,JSON.stringify(d));}catch(e){}}
@@ -261,7 +262,7 @@ async function gLoad(id){
   if(!r.ok)throw new Error("HTTP "+r.status);
   const d=await r.json(),c=d.files[GIST_FILE]?.content;
   if(!c)throw new Error("File not found");
-  return JSON.parse(c);
+  return{appData:JSON.parse(c),updatedAt:new Date(d.updated_at).getTime()};
 }
 async function gSave(id,d){
   const r=await fetch("https://api.github.com/gists/"+id,{method:"PATCH",headers:ghH(),body:JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(d)}}})});
@@ -282,7 +283,9 @@ async function syncLoad(){
   if(!token||!gistId)return;
   try{
     setSS("syncing");bumpDot();
-    data=await gLoad(gistId);
+    const{appData,updatedAt}=await gLoad(gistId);
+    data=appData;
+    lastSyncTime=updatedAt;
     lsave(data);setSS("ok");bumpDot();
     renderContent();
   }catch(e){setSS("error");bumpDot();}
@@ -290,13 +293,38 @@ async function syncLoad(){
 function schedSave(){clearTimeout(saveTimer);saveTimer=setTimeout(doPush,800);}
 async function doPush(){
   if(!token||!gistId){lsave(data);return;}
-  try{setSS("syncing");bumpDot();await gSave(gistId,data);lsave(data);setSS("ok");bumpDot();}
+  try{
+    setSS("syncing");bumpDot();
+    await gSave(gistId,data);
+    lastSyncTime=Date.now();
+    lsave(data);setSS("ok");bumpDot();
+  }
   catch(e){setSS("error");bumpDot();}
 }
 function setSS(s){syncState=s;}
 function bumpDot(){
   const el=document.getElementById("sync-dot");
   if(el)el.className="sync-dot "+syncState;
+}
+
+// ── background poll: pull remote changes every 30s ─────────────────────────
+async function pollForUpdates(){
+  if(!token||!gistId)return;       // not connected
+  if(saveTimer)return;             // local changes pending — don't overwrite
+  try{
+    const r=await fetch("https://api.github.com/gists/"+gistId,{headers:ghH()});
+    if(!r.ok)return;
+    const d=await r.json();
+    const remoteTime=new Date(d.updated_at).getTime();
+    if(remoteTime<=lastSyncTime)return; // nothing new on remote
+    const c=d.files[GIST_FILE]?.content;
+    if(!c)return;
+    data=JSON.parse(c);
+    lastSyncTime=remoteTime;
+    lsave(data);
+    setSS("ok");bumpDot();
+    renderContent();
+  }catch(e){} // silent fail — retries in 30s
 }
 
 // ── tag pool helpers ───────────────────────────────────────────────────────
@@ -1054,6 +1082,8 @@ setInterval(()=>{
   const el=document.getElementById("timer-el");
   if(el)el.textContent=fmt(Math.floor((Date.now()-data.activeSession.startTime)/1000));
 },1000);
+
+setInterval(pollForUpdates,30000);
 
 // ── init ───────────────────────────────────────────────────────────────────
 (function(){
