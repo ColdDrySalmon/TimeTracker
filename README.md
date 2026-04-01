@@ -1,0 +1,4 @@
+Time Tracker is a lightweight, self-hosted time tracking app that runs entirely in your browser — no account required, no server, no installs. Track how you spend your day across a set of personal categories like Work, Fitness, Family, and Leisure, with one tap to start a timer and automatic handoff when you switch.
+Sessions can be tagged for a second level of detail — log what you were working on within a category, then filter and analyze by tag in the Insights view. Charts and breakdowns update in real time across daily, weekly, monthly, yearly, and all-time periods, and data can be exported as CSV in either per-session or daily summary format.
+Your data syncs across devices via a private GitHub Gist — bring your own token, nothing is shared with anyone. The app installs as a PWA on desktop and mobile, so it lives on your home screen or taskbar like a native app.
+Built as a single HTML file with no dependencies.
