@@ -312,8 +312,11 @@ let ablyConnState="disconnected"; // "disconnected"|"connecting"|"connected"|"er
 function ablyChannelName(){return"tt-"+gistId;}
 
 function ablyNotify(){
-  if(!ablyChannel)return;
-  try{ablyChannel.publish("update",{t:Date.now()});}catch(e){}
+  if(!ablyChannel){console.log("[Ably] notify skipped — no channel");return;}
+  try{
+    ablyChannel.publish("update",{t:Date.now()});
+    console.log("[Ably] notification published");
+  }catch(e){console.log("[Ably] publish error:",e);}
 }
 
 function ablyConnect(){
@@ -323,41 +326,50 @@ function ablyConnect(){
     ablyConnState="connecting";
     ablyClient=new Ably.Realtime({key:ablyKey,autoConnect:true});
 
-    // connection state events — no timeouts needed
     ablyClient.connection.on("connected",()=>{
+      console.log("[Ably] connection established");
       ablyConnState="connected";
-      // subscribe once we know the connection is live
+      if(ablyChannel)ablyChannel.unsubscribe();
       ablyChannel=ablyClient.channels.get(ablyChannelName());
       ablyChannel.subscribe("update",async()=>{
-        if(saveTimer)return; // local changes pending — don't overwrite
+        console.log("[Ably] notification received, saveTimer=",saveTimer);
+        if(saveTimer){console.log("[Ably] skipping — local save pending");return;}
+        console.log("[Ably] pulling from Gist…");
         try{
           data=await gLoad(gistId);
           lsave(data);setSS("ok");bumpDot();
           renderContent();
-        }catch(e){}
+          console.log("[Ably] pull complete, re-rendered");
+        }catch(e){console.log("[Ably] gLoad error:",e);}
       });
-      // re-render settings if open so status updates
+      if(!saveTimer){
+        gLoad(gistId).then(d=>{
+          data=d;lsave(data);setSS("ok");bumpDot();renderContent();
+          console.log("[Ably] initial pull on connect complete");
+        }).catch(e=>console.log("[Ably] initial pull error:",e));
+      }
       if(showSettings)renderContent();
     });
 
     ablyClient.connection.on("failed",(err)=>{
       ablyConnState="error";
-      console.warn("Ably connection failed:",err);
+      console.warn("[Ably] connection failed:",err);
       if(showSettings)renderContent();
     });
 
     ablyClient.connection.on("disconnected",()=>{
-      // Ably auto-reconnects — don't treat as permanent failure
+      console.log("[Ably] disconnected — waiting to reconnect");
       ablyConnState="connecting";
     });
 
     ablyClient.connection.on("closed",()=>{
+      console.log("[Ably] closed");
       ablyConnState="disconnected";
     });
 
   }catch(e){
     ablyConnState="error";
-    console.warn("Ably init error:",e);
+    console.warn("[Ably] init error:",e);
   }
 }
 
@@ -1181,6 +1193,15 @@ setInterval(()=>{
   const el=document.getElementById("timer-el");
   if(el)el.textContent=fmt(Math.floor((Date.now()-data.activeSession.startTime)/1000));
 },1000);
+
+// ── pull when tab becomes visible (phone unlock, tab switch, etc.) ─────────
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState!=="visible")return;
+  if(!token||!gistId||saveTimer)return;
+  gLoad(gistId).then(d=>{
+    data=d;lsave(data);setSS("ok");bumpDot();renderContent();
+  }).catch(()=>{});
+});
 
 // ── init ───────────────────────────────────────────────────────────────────
 (function(){
