@@ -34,11 +34,12 @@ input,select{font-family:inherit;}
 #app-layout{display:flex;max-width:1120px;margin:0 auto;}
 #tt-col,#pt-col{flex:1;min-width:0;}
 #pt-col{border-left:0.5px solid var(--border);}
+
 @media(min-width:700px){
-  body{overflow:hidden;}
-  #app-layout{height:100vh;overflow:hidden;}
-  #tt-col,#pt-col{overflow-y:auto;height:100vh;}
+  #app-layout{padding-bottom:4rem;}
+  #header,#pt-header{position:sticky;top:0;}
 }
+
 @media(max-width:699px){
   #top-tabs{display:flex;}
   #pt-col{border-left:none;}
@@ -1073,3 +1074,4 @@ setInterval(pollForUpdates,30000);
 </script>
 </body>
 </html>
+
