@@ -875,7 +875,7 @@ function buildPTProjects(){
     const done=pct>=1;
     h+=`<div class="proj-card" style="border-left-color:${proj.color}">`;
     h+=`<div class="proj-card-hd"><span class="proj-card-name">${esc(proj.name)}</span>${done?`<span class="proj-done-badge">✓ Complete</span>`:""}<button class="icon-btn" onclick="removeProject('${proj.id}')" style="margin-left:auto;flex-shrink:0;">×</button></div>`;
-    h+=`<div class="proj-prog-nums">${fmtN(proj.currentTotal||0)} / ${fmtN(proj.goalTotal)} ${esc(proj.paramName)} &middot; <strong>${(pct*100).toFixed(1))}%</strong></div>`;
+    h+=`<div class="proj-prog-nums">${fmtN(proj.currentTotal||0)} / ${fmtN(proj.goalTotal)} ${esc(proj.paramName)} &middot; <strong>${Math.round(pct*100)}%</strong></div>`;
     h+=buildProgBar(pct);
     const goals=proj.dailyGoals||[];
     if(goals.length){
