@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Time Tracker</title>
-<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
+<title>Tracker</title>
 <style>
 :root{
   --bg:#ffffff;--bg2:#f4f4f1;--bg3:#e6e5e1;
@@ -20,35 +19,57 @@
 }}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
-#shell{max-width:560px;margin:0 auto;padding:1.75rem 1.25rem 5rem;}
 button{font-family:inherit;cursor:pointer;}
-input{font-family:inherit;}
+input,select{font-family:inherit;}
 .inp{font-size:14px;padding:9px 12px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);width:100%;outline:none;}
 .inp:focus{border-color:var(--text3);box-shadow:0 0 0 3px rgba(128,128,128,0.1);}
 .inp::placeholder{color:var(--text3);}
 
-/* topbar */
-#header{position:sticky;top:0;z-index:100;background:var(--bg);padding:1.75rem 1.25rem 0;max-width:560px;margin:0 auto;}
-#shell{max-width:560px;margin:0 auto;padding:0 1.25rem 5rem;}
-#topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+/* ── layout ── */
+#top-tabs{
+  display:none;position:sticky;top:0;z-index:200;
+  background:var(--bg);border-bottom:0.5px solid var(--border);
+  padding:0.875rem 1.25rem;justify-content:center;
+}
+#app-layout{display:flex;max-width:1120px;margin:0 auto;}
+#tt-col,#pt-col{flex:1;min-width:0;}
+#pt-col{border-left:0.5px solid var(--border);}
+@media(min-width:700px){
+  body{overflow:hidden;}
+  #app-layout{height:100vh;overflow:hidden;}
+  #tt-col,#pt-col{overflow-y:auto;height:100vh;}
+}
+@media(max-width:699px){
+  #top-tabs{display:flex;}
+  #pt-col{border-left:none;}
+  #tt-col,#pt-col{display:none;}
+  #tt-col.mob-on,#pt-col.mob-on{display:block;}
+  #header,#pt-header{position:static !important;}
+}
+
+/* ── column headers ── */
+#header{position:sticky;top:0;z-index:100;background:var(--bg);padding:1.75rem 1.25rem 0;}
+#content{padding:1.25rem 1.25rem 5rem;}
+#pt-header{position:sticky;top:0;z-index:100;background:var(--bg);padding:1.75rem 1.25rem 0;}
+#pt-content{padding:1.25rem 1.25rem 5rem;}
+
+/* ── topbar ── */
+#topbar,#pt-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
 .tb-title{font-size:16px;font-weight:500;letter-spacing:-0.01em;}
 .tb-right{display:flex;align-items:center;gap:8px;}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--bg3);flex-shrink:0;transition:background 0.3s;}
-.sync-dot.syncing{background:#EF9F27;}
-.sync-dot.ok{background:#1D9E75;}
-.sync-dot.error{background:#E24B4A;}
+.sync-dot.syncing{background:#EF9F27;}.sync-dot.ok{background:#1D9E75;}.sync-dot.error{background:#E24B4A;}
 .icon-btn{background:transparent;border:none;padding:5px 8px;border-radius:8px;color:var(--text3);font-size:15px;line-height:1;}
 .icon-btn:hover{color:var(--text2);background:var(--bg2);}
 
-/* nav */
-#nav{margin-bottom:1.5rem;}
-#content{padding-top:1.25rem;}
+/* ── nav ── */
+#nav,#pt-nav{margin-bottom:1.5rem;}
 .nav-shell{display:inline-flex;position:relative;background:var(--bg2);border-radius:var(--radius);padding:4px;}
 .nav-bubble{position:absolute;top:4px;height:calc(100% - 8px);background:var(--bg);border-radius:7px;border:0.5px solid var(--border2);box-shadow:0 1px 4px rgba(0,0,0,0.08);transition:transform 0.22s cubic-bezier(0.4,0,0.2,1),width 0.22s cubic-bezier(0.4,0,0.2,1);pointer-events:none;z-index:0;}
 .nav-tab{position:relative;z-index:1;padding:9px 22px;border:none;background:transparent;border-radius:7px;font-size:15px;color:var(--text2);cursor:pointer;white-space:nowrap;transition:color 0.15s;}
 .nav-tab.active{color:var(--text);font-weight:500;}
 
-/* active display */
+/* ── active display ── */
 .active-display{padding:1.25rem 1.5rem;border-radius:var(--radius-lg);background:var(--bg2);margin-bottom:0.875rem;border:0.5px solid var(--border);border-left-width:4px;transition:border-left-color 0.2s;}
 .active-label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text2);margin-bottom:4px;}
 .active-timer{font-size:46px;font-family:var(--mono);font-weight:500;letter-spacing:-0.03em;line-height:1.05;}
@@ -58,15 +79,13 @@ input{font-family:inherit;}
 .a-chip-rm{border:none;background:transparent;color:var(--text3);font-size:14px;line-height:1;padding:0 2px;cursor:pointer;}
 .a-chip-rm:hover{color:var(--text);}
 
-/* tag panel */
+/* ── tag panel ── */
 .tag-add-btn{display:inline-block;background:transparent;border:0.5px dashed var(--border2);color:var(--text3);font-size:12px;padding:5px 12px;border-radius:20px;margin-bottom:0.875rem;}
 .tag-add-btn:hover{color:var(--text2);border-color:var(--text3);}
-/* recent tags quick-add row */
 .recent-tags-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
 .recent-tag-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;}
 .recent-tag-chip:hover{background:var(--bg2);color:var(--text);}
 .recent-tag-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-/* tag filter in insights */
 .tag-filter-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:1rem;}
 .tag-filter-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;}
 .tag-filter-chip:hover{background:var(--bg2);color:var(--text);}
@@ -76,13 +95,11 @@ input{font-family:inherit;}
 .filter-bar-tag{font-weight:500;color:var(--text);}
 .filter-clear-btn{margin-left:auto;background:transparent;border:none;color:var(--text3);font-size:12px;padding:0;cursor:pointer;}
 .filter-clear-btn:hover{color:var(--text2);}
-/* tag viz section */
 .tag-viz-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .tag-viz-title{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);}
-.viz-toggle{display:inline-flex;background:var(--bg2);border-radius:8px;padding:2px;gap:0;}
+.viz-toggle{display:inline-flex;background:var(--bg2);border-radius:8px;padding:2px;}
 .viz-toggle-btn{padding:4px 12px;border:none;background:transparent;border-radius:6px;font-size:12px;color:var(--text3);cursor:pointer;}
 .viz-toggle-btn.active{background:var(--bg);color:var(--text);border:0.5px solid var(--border2);}
-/* tag bar chart */
 .tag-bars{display:flex;flex-direction:column;gap:8px;margin-bottom:1.75rem;}
 .tag-bar-row{display:flex;align-items:center;gap:10px;}
 .tag-bar-label{font-size:12px;color:var(--text2);width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:5px;}
@@ -90,7 +107,6 @@ input{font-family:inherit;}
 .tag-bar-track{flex:1;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;}
 .tag-bar-fill{height:100%;border-radius:3px;}
 .tag-bar-val{font-size:12px;font-family:var(--mono);color:var(--text2);flex-shrink:0;width:36px;text-align:right;}
-/* tag pie */
 .tag-pie-wrap{display:flex;align-items:flex-start;gap:1.5rem;margin-bottom:1.75rem;padding:1.25rem;background:var(--bg2);border-radius:var(--radius-lg);}
 .tag-panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:0.875rem 1.125rem;margin-bottom:0.875rem;}
 .tag-panel-title{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:8px;}
@@ -102,7 +118,7 @@ input{font-family:inherit;}
 .pool-chip{padding:4px 11px;border-radius:20px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;}
 .pool-chip:hover{background:var(--bg3);color:var(--text);}
 
-/* category buttons */
+/* ── category buttons ── */
 .cat-list{display:flex;flex-direction:column;gap:8px;}
 .cat-row{display:flex;align-items:stretch;gap:8px;}
 .cat-btn{flex:1;display:flex;align-items:center;justify-content:space-between;padding:17px 20px;border-radius:var(--radius-lg);border:0.5px solid var(--border);border-left-width:4px;background:transparent;color:var(--text);text-align:left;font-size:17px;font-weight:400;transition:background 0.1s;}
@@ -119,12 +135,13 @@ input{font-family:inherit;}
 .add-row{display:flex;gap:8px;margin-top:6px;}
 .sm-btn{padding:0 14px;height:37px;border-radius:var(--radius);border:0.5px solid var(--border2);background:transparent;color:var(--text);font-size:13px;white-space:nowrap;}
 .sm-btn:hover{background:var(--bg2);}
+.sm-btn.sel{background:var(--bg3);}
 
-/* insights */
+/* ── insights ── */
 .period-row{display:flex;align-items:center;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap;}
 .period-btn{padding:5px 12px;border-radius:var(--radius);border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;}
 .period-btn.active{background:var(--bg2);color:var(--text);}
-.export-btn{margin-left:auto;padding:5px 11px;border-radius:var(--radius);border:0.5px solid var(--border2);background:transparent;color:var(--text3);font-size:12px;}
+.export-btn{padding:5px 11px;border-radius:var(--radius);border:0.5px solid var(--border2);background:transparent;color:var(--text3);font-size:12px;}
 .export-btn:hover{color:var(--text2);background:var(--bg2);}
 .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem;}
 .sum-card{padding:1rem;border-radius:var(--radius);background:var(--bg2);}
@@ -142,13 +159,9 @@ input{font-family:inherit;}
 .bar-time{font-family:var(--mono);color:var(--text2);font-size:14px;}
 .bar-track{height:4px;border-radius:3px;background:var(--bg3);overflow:hidden;margin-bottom:6px;}
 .bar-fill{height:100%;border-radius:3px;}
-.tag-bk{display:flex;flex-direction:column;gap:3px;padding-left:10px;}
-.tag-bk-item{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);}
-.tag-bk-n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;}
-.tag-bk-v{font-family:var(--mono);flex-shrink:0;}
 .sec-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);margin-bottom:8px;}
 
-/* session list */
+/* ── session list ── */
 .session-list{display:flex;flex-direction:column;gap:5px;margin-bottom:1.75rem;}
 .s-item{border-radius:var(--radius);border:0.5px solid var(--border);border-left-width:3px;overflow:hidden;}
 .s-head{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;user-select:none;}
@@ -172,7 +185,7 @@ input{font-family:inherit;}
 .s-pool-chip:hover{background:var(--bg3);}
 .empty{color:var(--text3);font-size:14px;padding:2rem 0;text-align:center;}
 
-/* manage page */
+/* ── manage ── */
 .manage-section{margin-bottom:2rem;}
 .manage-section-hd{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;}
 .manage-section-title{font-size:16px;font-weight:500;}
@@ -193,7 +206,7 @@ input{font-family:inherit;}
 .tag-edit-row .inp{flex:1;font-size:13px;padding:5px 9px;}
 .tags-empty{font-size:13px;color:var(--text3);padding:2px 0 4px;}
 
-/* settings */
+/* ── settings ── */
 .setup-card{padding:1.5rem;border-radius:var(--radius-lg);border:0.5px solid var(--border2);margin-bottom:1rem;}
 .setup-title{font-size:16px;font-weight:500;margin-bottom:8px;}
 .setup-desc{font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:1rem;}
@@ -209,27 +222,86 @@ input{font-family:inherit;}
 .fl-msg.error{background:rgba(226,75,74,0.08);color:#E24B4A;}
 .fl-msg.ok{background:rgba(29,158,117,0.08);color:#1D9E75;}
 
-/* desktop: bigger category buttons */
-@media(min-width:600px){
-  .cat-btn{padding:22px 24px;font-size:18px;}
-  .cat-rm{font-size:21px;}
-}
-/* mobile: bigger tap targets for quick-add tag chips */
-@media(max-width:599px){
-  .recent-tag-chip{padding:8px 16px;font-size:14px;gap:7px;}
-  .recent-tag-dot{width:7px;height:7px;}
-  .recent-tags-row{gap:7px;margin-bottom:10px;}
-}
+/* ── project tracker: today view ── */
+.pt-block{background:var(--bg2);border:0.5px solid var(--border);border-left:4px solid;border-radius:var(--radius-lg);padding:1rem 1.125rem;margin-bottom:0.875rem;}
+.pt-block-hd{display:flex;align-items:center;gap:7px;}
+.pt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.pt-name{font-size:14px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pt-stat{font-size:11px;color:var(--text3);font-family:var(--mono);white-space:nowrap;flex-shrink:0;}
+.goal-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:0.5px solid var(--border);flex-wrap:wrap;}
+.goal-row-l{display:flex;align-items:center;gap:6px;flex:1;min-width:120px;}
+.goal-nm{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.goal-streak{font-size:12px;color:var(--text3);white-space:nowrap;flex-shrink:0;}
+.goal-row-r{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.goal-logged{font-size:13px;}
+.goal-logged.done{color:#1D9E75;}
+.goal-logged.part{color:var(--text2);}
+.goal-edit-btn{background:transparent;border:none;font-size:12px;color:var(--text3);cursor:pointer;padding:2px 5px;border-radius:5px;}
+.goal-edit-btn:hover{color:var(--text2);background:var(--bg3);}
+.goal-num-in{width:84px;font-size:13px;padding:6px 8px;}
+.goal-target{font-size:12px;color:var(--text3);white-space:nowrap;}
+.check-wrap{display:flex;align-items:center;gap:7px;}
+.check-box{width:17px;height:17px;cursor:pointer;accent-color:#1D9E75;flex-shrink:0;}
+.check-lbl{font-size:13px;color:var(--text2);cursor:pointer;}
+.check-lbl.done{color:#1D9E75;}
+
+/* ── project tracker: projects view ── */
+.proj-card{background:var(--bg2);border:0.5px solid var(--border);border-left:4px solid;border-radius:var(--radius-lg);padding:1.125rem;margin-bottom:0.875rem;}
+.proj-card-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.proj-card-name{font-size:15px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.proj-done-badge{font-size:11px;color:#1D9E75;border:0.5px solid rgba(29,158,117,0.4);border-radius:20px;padding:2px 8px;white-space:nowrap;flex-shrink:0;}
+.proj-prog-nums{font-size:13px;color:var(--text2);margin-bottom:4px;}
+.proj-prog-nums strong{color:var(--text);}
+.proj-goals-list{margin-top:10px;border-top:0.5px solid var(--border);padding-top:2px;}
+.proj-goal-item{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border);}
+.proj-goal-item:last-child{border-bottom:none;}
+.proj-goal-info{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+.proj-goal-name{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.proj-goal-meta{font-size:11px;color:var(--text3);}
+.proj-goal-acts{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:8px;}
+
+/* ── add goal / add project forms ── */
+.goal-form{margin-top:10px;padding:10px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;gap:8px;}
+.goal-form-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.goal-form-lbl{font-size:12px;color:var(--text2);white-space:nowrap;}
+.proj-form{background:var(--bg2);border:0.5px dashed var(--border2);border-radius:var(--radius-lg);padding:1.125rem;margin-bottom:0.875rem;}
+.proj-form-title{font-size:14px;font-weight:500;margin-bottom:10px;}
+.proj-form-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.proj-form-row .inp{flex:1;min-width:120px;}
+.color-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.cswatch{width:22px;height:22px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;padding:0;flex-shrink:0;}
+.cswatch.sel{border-color:var(--text);}
+.proj-export-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.5rem;}
+
+/* ── desktop cat buttons ── */
+@media(min-width:600px){.cat-btn{padding:22px 24px;font-size:18px;}.cat-rm{font-size:21px;}}
 </style>
 </head>
 <body>
-<div id="shell">
-  <div id="header">
-    <div id="topbar"></div>
-    <div id="nav"></div>
+
+<!-- mobile app switcher -->
+<div id="top-tabs"></div>
+
+<div id="app-layout">
+  <!-- time tracker column -->
+  <div id="tt-col" class="mob-on">
+    <div id="header">
+      <div id="topbar"></div>
+      <div id="nav"></div>
+    </div>
+    <div id="content"></div>
   </div>
-  <div id="content"></div>
+
+  <!-- project tracker column -->
+  <div id="pt-col">
+    <div id="pt-header">
+      <div id="pt-topbar"></div>
+      <div id="pt-nav"></div>
+    </div>
+    <div id="pt-content"></div>
+  </div>
 </div>
+
 <script>
 // ── constants ──────────────────────────────────────────────────────────────
 const CAT_COLORS=["#378ADD","#EF9F27","#1D9E75","#D85A30","#7F77DD","#D4537E","#639922","#E24B4A"];
@@ -240,23 +312,27 @@ const DEFAULT_CATS=[
   {id:"family",name:"Family",color:"#D85A30"},
   {id:"leisure",name:"Leisure",color:"#7F77DD"},
 ];
-const LKEY="tt-v3",GKEY="tt-gist",TKEY="tt-token",AKEY="tt-ably",GIST_FILE="time-tracker-data.json";
+const LKEY="tt-v3",GKEY="tt-gist",TKEY="tt-token",GIST_FILE="time-tracker-data.json";
 const TABS=["tracker","insights","manage"];
+const PT_TABS=["today","projects"];
 
 // ── state ──────────────────────────────────────────────────────────────────
-// data.tagPools = { [catId]: string[] }
-// session  = { id, categoryId, tags:string[], startTime, endTime }
-// active   = { categoryId, tags:string[], startTime }
-let data={categories:[...DEFAULT_CATS],sessions:[],activeSession:null,tagPools:{}};
+let data={categories:[...DEFAULT_CATS],sessions:[],activeSession:null,tagPools:{},projects:[],dailyLogs:[]};
 let view="tracker",period="today";
 let showSettings=false,addingCat=false,showTagInput=false;
 let expandedSid=null,expandedAddingTag=false;
-let activeTagFilter=null; // {catId, tag} | null
-let tagViewMode="bar"; // "pie" | "bar"
-let editingTag=null; // {catId, tag} | null
-let syncState="idle",saveTimer=null;
-let token="",gistId="",ablyKey="";
-let ablyClient=null,ablyChannel=null;
+let activeTagFilter=null,tagViewMode="bar",editingTag=null;
+let syncState="idle",saveTimer=null,token="",gistId="",lastSyncTime=0;
+
+// project state
+let mobApp="time";           // mobile active panel
+let ptView="today";          // project tracker inner tab
+let addingProject=false;
+let addingGoalToProjId=null;
+let editingLogKey=null;      // {projId,goalId}|null
+// form field mirrors (survive color-pick re-renders)
+let npName="",npParam="",npGoal="",npColor=CAT_COLORS[0];
+let ngName="",ngType="number",ngTarget="";
 
 // ── storage ────────────────────────────────────────────────────────────────
 function lsave(d){try{localStorage.setItem(LKEY,JSON.stringify(d));}catch(e){}}
@@ -265,14 +341,11 @@ function lload(){try{const s=localStorage.getItem(LKEY);return s?JSON.parse(s):n
 // ── gist sync ──────────────────────────────────────────────────────────────
 const ghH=()=>({"Authorization":"token "+token,"Content-Type":"application/json"});
 async function gLoad(id){
-  const r=await fetch("https://api.github.com/gists/"+id,{
-    headers:ghH(),
-    cache:"no-store"
-  });
+  const r=await fetch("https://api.github.com/gists/"+id,{headers:ghH()});
   if(!r.ok)throw new Error("HTTP "+r.status);
   const d=await r.json(),c=d.files[GIST_FILE]?.content;
   if(!c)throw new Error("File not found");
-  return JSON.parse(c);
+  return{appData:JSON.parse(c),updatedAt:new Date(d.updated_at).getTime()};
 }
 async function gSave(id,d){
   const r=await fetch("https://api.github.com/gists/"+id,{method:"PATCH",headers:ghH(),body:JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(d)}}})});
@@ -289,148 +362,73 @@ async function findOrCreate(){
   const list=await r.json(),ex=list.find(g=>g.description==="time-tracker-data"&&g.files[GIST_FILE]);
   return ex?ex.id:await gCreate(data);
 }
+function fixData(d){
+  if(!d.tagPools)d.tagPools={};
+  if(!d.projects)d.projects=[];
+  if(!d.dailyLogs)d.dailyLogs=[];
+  return d;
+}
 async function syncLoad(){
   if(!token||!gistId)return;
   try{
     setSS("syncing");bumpDot();
-    data=await gLoad(gistId);
+    const{appData,updatedAt}=await gLoad(gistId);
+    data=fixData(appData);lastSyncTime=updatedAt;
     lsave(data);setSS("ok");bumpDot();
-    renderContent();
+    renderContent();renderPTContent();
   }catch(e){setSS("error");bumpDot();}
 }
 function schedSave(){clearTimeout(saveTimer);saveTimer=setTimeout(doPush,800);}
 async function doPush(){
-  if(!token||!gistId){lsave(data);saveTimer=null;return;}
-  try{
-    setSS("syncing");bumpDot();
-    await gSave(gistId,data);
-    lsave(data);setSS("ok");bumpDot();
-    saveTimer=null;
-    ablyNotify();
-  }catch(e){setSS("error");bumpDot();saveTimer=null;}
+  if(!token||!gistId){lsave(data);return;}
+  try{setSS("syncing");bumpDot();await gSave(gistId,data);lastSyncTime=Date.now();lsave(data);setSS("ok");bumpDot();}
+  catch(e){setSS("error");bumpDot();}
 }
 function setSS(s){syncState=s;}
-function bumpDot(){
-  const el=document.getElementById("sync-dot");
-  if(el)el.className="sync-dot "+syncState;
-}
-
-// ── ably real-time ─────────────────────────────────────────────────────────
-let ablyConnState="disconnected"; // "disconnected"|"connecting"|"connected"|"error"
-
-function ablyChannelName(){return"tt-"+gistId;}
-
-function ablyNotify(){
-  if(!ablyChannel)return;
-  try{ablyChannel.publish("update",{t:Date.now()});}catch(e){}
-}
-
-function ablyConnect(){
-  if(!ablyKey||!gistId)return;
-  ablyDisconnect();
+function bumpDot(){const el=document.getElementById("sync-dot");if(el)el.className="sync-dot "+syncState;}
+async function pollForUpdates(){
+  if(!token||!gistId||saveTimer)return;
   try{
-    ablyConnState="connecting";
-    ablyClient=new Ably.Realtime({key:ablyKey,autoConnect:true});
-
-    ablyClient.connection.on("connected",()=>{
-      ablyConnState="connected";
-      if(ablyChannel)ablyChannel.unsubscribe();
-      ablyChannel=ablyClient.channels.get(ablyChannelName());
-      ablyChannel.subscribe("update",async()=>{
-        if(saveTimer)return;
-        try{
-          data=await gLoad(gistId);
-          lsave(data);setSS("ok");bumpDot();
-          renderContent();
-        }catch(e){}
-      });
-      if(!saveTimer){
-        gLoad(gistId).then(d=>{
-          data=d;lsave(data);setSS("ok");bumpDot();renderContent();
-        }).catch(()=>{});
-      }
-      if(showSettings)renderContent();
-    });
-
-    ablyClient.connection.on("failed",()=>{
-      ablyConnState="error";
-      if(showSettings)renderContent();
-    });
-
-    ablyClient.connection.on("disconnected",()=>{
-      ablyConnState="connecting";
-    });
-
-    ablyClient.connection.on("closed",()=>{
-      ablyConnState="disconnected";
-    });
-
-  }catch(e){
-    ablyConnState="error";
-  }
-}
-
-function ablyDisconnect(){
-  try{
-    if(ablyChannel){ablyChannel.unsubscribe();ablyChannel=null;}
-    if(ablyClient){ablyClient.close();ablyClient=null;}
+    const r=await fetch("https://api.github.com/gists/"+gistId,{headers:ghH()});
+    if(!r.ok)return;
+    const d=await r.json(),remoteTime=new Date(d.updated_at).getTime();
+    if(remoteTime<=lastSyncTime)return;
+    const c=d.files[GIST_FILE]?.content;if(!c)return;
+    data=fixData(JSON.parse(c));lastSyncTime=remoteTime;
+    lsave(data);setSS("ok");bumpDot();renderContent();renderPTContent();
   }catch(e){}
-  ablyConnState="disconnected";
 }
 
 // ── tag pool helpers ───────────────────────────────────────────────────────
 function poolFor(cid){return(data.tagPools&&data.tagPools[cid])||[];}
-function addToPool(cid,tag){
-  if(!tag||!tag.trim())return;
-  const p=poolFor(cid);
-  if(!p.includes(tag)){data.tagPools=Object.assign({},data.tagPools,{[cid]:[...p,tag]});}
-}
-function removeFromPool(cid,tag){
-  data.tagPools=Object.assign({},data.tagPools,{[cid]:poolFor(cid).filter(t=>t!==tag)});
-}
+function addToPool(cid,tag){if(!tag||!tag.trim())return;const p=poolFor(cid);if(!p.includes(tag)){data.tagPools=Object.assign({},data.tagPools,{[cid]:[...p,tag]});}}
+function removeFromPool(cid,tag){data.tagPools=Object.assign({},data.tagPools,{[cid]:poolFor(cid).filter(t=>t!==tag)});}
 
-// ── mutations ──────────────────────────────────────────────────────────────
+// ── time tracker mutations ─────────────────────────────────────────────────
 function startCat(id){
   const now=Date.now(),sessions=[...data.sessions];
-  if(data.activeSession){
-    sessions.push({id:"s"+now,categoryId:data.activeSession.categoryId,tags:data.activeSession.tags||[],startTime:data.activeSession.startTime,endTime:now});
-  }
+  if(data.activeSession)sessions.push({id:"s"+now,categoryId:data.activeSession.categoryId,tags:data.activeSession.tags||[],startTime:data.activeSession.startTime,endTime:now});
   const stopping=data.activeSession&&data.activeSession.categoryId===id;
   data=Object.assign({},data,{sessions,activeSession:stopping?null:{categoryId:id,tags:[],startTime:now}});
-  showTagInput=false;
-  schedSave();
-  renderContent();
+  showTagInput=false;schedSave();renderContent();
 }
-
-function openTagInput(){
-  showTagInput=true;
-  renderContent();
-  setTimeout(()=>{const el=document.getElementById("tag-in");if(el)el.focus();},40);
-}
+function openTagInput(){showTagInput=true;renderContent();setTimeout(()=>{const el=document.getElementById("tag-in");if(el)el.focus();},40);}
 function closeTagInput(){showTagInput=false;renderContent();}
-
 function addActiveTag(){
   if(!data.activeSession)return;
   const inp=document.getElementById("tag-in");
   const val=inp?(inp.value||"").trim():"";
   if(!val)return;
   const tags=data.activeSession.tags||[];
-  if(!tags.includes(val)){
-    addToPool(data.activeSession.categoryId,val);
-    data=Object.assign({},data,{activeSession:Object.assign({},data.activeSession,{tags:[...tags,val]})});
-  }
-  schedSave();
-  renderContent();
+  if(!tags.includes(val)){addToPool(data.activeSession.categoryId,val);data=Object.assign({},data,{activeSession:Object.assign({},data.activeSession,{tags:[...tags,val]})});}
+  schedSave();renderContent();
   setTimeout(()=>{const el=document.getElementById("tag-in");if(el){el.value="";el.focus();}},20);
 }
-
 function removeActiveTag(tag){
   if(!data.activeSession)return;
-  const tags=(data.activeSession.tags||[]).filter(t=>t!==tag);
-  data=Object.assign({},data,{activeSession:Object.assign({},data.activeSession,{tags})});
+  data=Object.assign({},data,{activeSession:Object.assign({},data.activeSession,{tags:(data.activeSession.tags||[]).filter(t=>t!==tag)})});
   schedSave();renderContent();
 }
-
 function pickPoolTag(tag){
   if(!data.activeSession)return;
   const tags=data.activeSession.tags||[];
@@ -438,88 +436,127 @@ function pickPoolTag(tag){
   data=Object.assign({},data,{activeSession:Object.assign({},data.activeSession,{tags:[...tags,tag]})});
   schedSave();renderContent();
 }
-
 function addSessionTag(sid){
   const inp=document.getElementById("sedit-in-"+sid);
-  const val=inp?(inp.value||"").trim():"";
-  if(!val)return;
+  const val=inp?(inp.value||"").trim():"";if(!val)return;
   const sessions=data.sessions.map(s=>{
     if(s.id!==sid)return s;
     if((s.tags||[]).includes(val))return s;
     addToPool(s.categoryId,val);
     return Object.assign({},s,{tags:[...(s.tags||[]),val]});
   });
-  data=Object.assign({},data,{sessions});
-  schedSave();renderContent();
+  data=Object.assign({},data,{sessions});schedSave();renderContent();
   setTimeout(()=>{const el=document.getElementById("sedit-in-"+sid);if(el){el.value="";el.focus();}},20);
 }
-
 function removeSessionTag(sid,tag){
-  const sessions=data.sessions.map(s=>s.id===sid?Object.assign({},s,{tags:(s.tags||[]).filter(t=>t!==tag)}):s);
-  data=Object.assign({},data,{sessions});
+  data=Object.assign({},data,{sessions:data.sessions.map(s=>s.id===sid?Object.assign({},s,{tags:(s.tags||[]).filter(t=>t!==tag)}):s)});
   schedSave();renderContent();
 }
-
 function pickSessionPoolTag(sid,tag){
-  const sessions=data.sessions.map(s=>{
+  data=Object.assign({},data,{sessions:data.sessions.map(s=>{
     if(s.id!==sid||(s.tags||[]).includes(tag))return s;
     return Object.assign({},s,{tags:[...(s.tags||[]),tag]});
-  });
-  data=Object.assign({},data,{sessions});
-  schedSave();renderContent();
+  })});schedSave();renderContent();
 }
-
 function deletePoolTag(cid,tag){
   removeFromPool(cid,tag);
   if(data.activeSession&&data.activeSession.categoryId===cid){
-    const tags=(data.activeSession.tags||[]).filter(t=>t!==tag);
-    data=Object.assign({},data,{activeSession:Object.assign({},data.activeSession,{tags})});
+    data=Object.assign({},data,{activeSession:Object.assign({},data.activeSession,{tags:(data.activeSession.tags||[]).filter(t=>t!==tag)})});
   }
   schedSave();renderContent();
 }
-
 function renameTag(cid,oldTag,newTag){
   newTag=(newTag||"").trim();
   if(!newTag||newTag===oldTag){editingTag=null;renderContent();return;}
-  // update pool: replace in-place to preserve order
-  const pool=poolFor(cid).map(t=>t===oldTag?newTag:t);
-  // deduplicate in case newTag already existed
-  const deduped=pool.filter((t,i)=>pool.indexOf(t)===i);
-  data.tagPools=Object.assign({},data.tagPools,{[cid]:deduped});
-  // update all sessions
+  const pool=poolFor(cid).map(t=>t===oldTag?newTag:t).filter((t,i,a)=>a.indexOf(t)===i);
+  data.tagPools=Object.assign({},data.tagPools,{[cid]:pool});
   const sessions=data.sessions.map(s=>{
     if(s.categoryId!==cid)return s;
-    const tags=(s.tags||[]).map(t=>t===oldTag?newTag:t);
-    const dedup=tags.filter((t,i)=>tags.indexOf(t)===i);
-    return Object.assign({},s,{tags:dedup});
+    const tags=(s.tags||[]).map(t=>t===oldTag?newTag:t).filter((t,i,a)=>a.indexOf(t)===i);
+    return Object.assign({},s,{tags});
   });
-  // update active session if applicable
   let activeSession=data.activeSession;
   if(activeSession&&activeSession.categoryId===cid){
-    const tags=(activeSession.tags||[]).map(t=>t===oldTag?newTag:t);
-    const dedup=tags.filter((t,i)=>tags.indexOf(t)===i);
-    activeSession=Object.assign({},activeSession,{tags:dedup});
+    const tags=(activeSession.tags||[]).map(t=>t===oldTag?newTag:t).filter((t,i,a)=>a.indexOf(t)===i);
+    activeSession=Object.assign({},activeSession,{tags});
   }
-  data=Object.assign({},data,{sessions,activeSession});
-  editingTag=null;
-  schedSave();renderContent();
+  data=Object.assign({},data,{sessions,activeSession});editingTag=null;schedSave();renderContent();
 }
-
 function removeCat(id){
-  if(data.activeSession&&data.activeSession.categoryId===id){
-    data=Object.assign({},data,{activeSession:null});
-    showTagInput=false;
-  }
-  data=Object.assign({},data,{categories:data.categories.filter(c=>c.id!==id)});
-  schedSave();renderContent();
+  if(data.activeSession&&data.activeSession.categoryId===id){data=Object.assign({},data,{activeSession:null});showTagInput=false;}
+  data=Object.assign({},data,{categories:data.categories.filter(c=>c.id!==id)});schedSave();renderContent();
 }
-
 function addCat(name){
   if(!name.trim())return;
-  const color=CAT_COLORS[data.categories.length%CAT_COLORS.length];
-  const newCat={id:"c"+Date.now(),name:name.trim(),color};
-  data=Object.assign({},data,{categories:[...data.categories,newCat]});
+  data=Object.assign({},data,{categories:[...data.categories,{id:"c"+Date.now(),name:name.trim(),color:CAT_COLORS[data.categories.length%CAT_COLORS.length]}]});
   schedSave();renderContent();
+}
+
+// ── project helpers ────────────────────────────────────────────────────────
+function todayKey(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
+function prevDay(ds,n=1){const d=new Date(ds+"T12:00:00");d.setDate(d.getDate()-n);return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
+function fmtN(n){if(n===undefined||n===null)return"0";const v=Number(n);return Number.isInteger(v)?v.toLocaleString():v.toLocaleString(undefined,{maximumFractionDigits:2});}
+function getTodayLog(pId,gId){const t=todayKey();return(data.dailyLogs||[]).find(l=>l.projectId===pId&&l.goalId===gId&&l.date===t)||null;}
+function calcStreak(pId,gId){
+  const done=new Set((data.dailyLogs||[]).filter(l=>l.projectId===pId&&l.goalId===gId&&l.completed).map(l=>l.date));
+  if(!done.size)return 0;
+  const t=todayKey();
+  let s=done.has(t)?1:0,chk=prevDay(t);
+  while(done.has(chk)){s++;chk=prevDay(chk);}
+  return s;
+}
+
+// ── project mutations ──────────────────────────────────────────────────────
+function addProject(name,param,goal,color){
+  if(!name.trim())return;
+  const p={id:"p"+Date.now(),name:name.trim(),paramName:param.trim()||"Units",goalTotal:parseFloat(goal)||100,currentTotal:0,color,dailyGoals:[]};
+  data=Object.assign({},data,{projects:[...(data.projects||[]),p]});
+  addingProject=false;schedSave();renderPTContent();
+}
+function removeProject(pId){
+  if(!confirm("Delete this project and all its progress data?"))return;
+  data=Object.assign({},data,{
+    projects:(data.projects||[]).filter(p=>p.id!==pId),
+    dailyLogs:(data.dailyLogs||[]).filter(l=>l.projectId!==pId)
+  });schedSave();renderPTContent();
+}
+function addGoal(pId,name,type,target){
+  if(!name.trim())return;
+  const g={id:"g"+Date.now(),name:name.trim(),type,target:type==="number"?(parseFloat(target)||1):null};
+  data=Object.assign({},data,{projects:(data.projects||[]).map(p=>p.id!==pId?p:Object.assign({},p,{dailyGoals:[...(p.dailyGoals||[]),g]}))});
+  addingGoalToProjId=null;schedSave();renderPTContent();
+}
+function removeGoal(pId,gId){
+  data=Object.assign({},data,{
+    projects:(data.projects||[]).map(p=>p.id!==pId?p:Object.assign({},p,{dailyGoals:(p.dailyGoals||[]).filter(g=>g.id!==gId)})),
+    dailyLogs:(data.dailyLogs||[]).filter(l=>!(l.projectId===pId&&l.goalId===gId))
+  });schedSave();renderPTContent();
+}
+function logGoal(pId,gId,raw){
+  const t=todayKey();
+  const proj=(data.projects||[]).find(p=>p.id===pId);if(!proj)return;
+  const goal=(proj.dailyGoals||[]).find(g=>g.id===gId);if(!goal)return;
+  let logs=[...(data.dailyLogs||[])],projs=[...(data.projects||[])];
+  const pi=projs.findIndex(p=>p.id===pId);
+  const li=logs.findIndex(l=>l.projectId===pId&&l.goalId===gId&&l.date===t);
+  if(goal.type==="number"){
+    const val=parseFloat(raw);if(isNaN(val))return;
+    const completed=val>=goal.target;
+    if(li>=0){
+      const old=logs[li].value||0;
+      projs[pi]=Object.assign({},projs[pi],{currentTotal:Math.max(0,(projs[pi].currentTotal||0)-old+val)});
+      logs[li]=Object.assign({},logs[li],{value:val,completed});
+    }else{
+      projs[pi]=Object.assign({},projs[pi],{currentTotal:(projs[pi].currentTotal||0)+val});
+      logs.push({id:"l"+Date.now(),projectId:pId,goalId:gId,date:t,value:val,completed});
+    }
+  }else{
+    const val=!!raw;
+    if(li>=0)logs[li]=Object.assign({},logs[li],{value:val,completed:val});
+    else logs.push({id:"l"+Date.now(),projectId:pId,goalId:gId,date:t,value:val,completed:val});
+  }
+  data=Object.assign({},data,{projects:projs,dailyLogs:logs});
+  editingLogKey=null;schedSave();renderPTContent();
 }
 
 // ── analytics ──────────────────────────────────────────────────────────────
@@ -537,63 +574,22 @@ function getSessions(p){
     return true;
   });
 }
-function getStats(p){
-  const stats={};data.categories.forEach(c=>{stats[c.id]=0;});
-  getSessions(p).forEach(s=>{if(s.categoryId in stats)stats[s.categoryId]+=(s.endTime-s.startTime);});
-  return stats;
-}
-function getTagStats(p,cid){
-  const stats={};
-  getSessions(p).filter(s=>s.categoryId===cid).forEach(s=>{
-    (s.tags||[]).forEach(t=>{stats[t]=(stats[t]||0)+(s.endTime-s.startTime);});
-  });
-  return Object.entries(stats).sort((a,b)=>b[1]-a[1]);
-}
-function getDailyAvg(p){
-  if(p==="today")return null;
-  const ss=getSessions(p);if(!ss.length)return null;
-  const days=new Set(ss.map(s=>dayKey(s.startTime)));
-  return ss.reduce((a,s)=>a+(s.endTime-s.startTime),0)/days.size;
-}
-function tagUseCount(cid,tag){
-  return data.sessions.filter(s=>s.categoryId===cid&&(s.tags||[]).includes(tag)).length;
-}
-// Up to 5 most recently used tags for a category (recency order, unique)
+function tagUseCount(cid,tag){return data.sessions.filter(s=>s.categoryId===cid&&(s.tags||[]).includes(tag)).length;}
 function recentTagsFor(catId){
   const seen=[],result=[];
   for(let i=data.sessions.length-1;i>=0;i--){
-    const s=data.sessions[i];
-    if(s.categoryId!==catId)continue;
-    for(const t of(s.tags||[])){
-      if(!seen.includes(t)){seen.push(t);result.push(t);}
-      if(result.length>=5)return result;
-    }
+    const s=data.sessions[i];if(s.categoryId!==catId)continue;
+    for(const t of(s.tags||[])){if(!seen.includes(t)){seen.push(t);result.push(t);}if(result.length>=5)return result;}
   }
   return result;
 }
-function setTagFilter(catId,tag){
-  activeTagFilter=(activeTagFilter&&activeTagFilter.catId===catId&&activeTagFilter.tag===tag)?null:{catId,tag};
-  renderContent();
-}
+function setTagFilter(cId,tag){activeTagFilter=(activeTagFilter&&activeTagFilter.catId===cId&&activeTagFilter.tag===tag)?null:{catId:cId,tag};renderContent();}
 function clearTagFilter(){activeTagFilter=null;renderContent();}
 
 // ── formatters ─────────────────────────────────────────────────────────────
-function fmt(sec){
-  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
-  return h>0?`${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${m}:${String(s).padStart(2,"0")}`;
-}
-function fmtMs(ms){
-  if(ms<60000)return`${Math.round(ms/1000)}s`;
-  const h=ms/3600000;return h<1?`${Math.round(ms/60000)}m`:`${h.toFixed(1)}h`;
-}
-// Safe for HTML attributes (double-quoted) and text content
-function esc(s){
-  return String(s)
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;");
-}
+function fmt(sec){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return h>0?`${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${m}:${String(s).padStart(2,"0")}`;}
+function fmtMs(ms){if(ms<60000)return`${Math.round(ms/1000)}s`;const h=ms/3600000;return h<1?`${Math.round(ms/60000)}m`:`${h.toFixed(1)}h`;}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 // ── pie chart ──────────────────────────────────────────────────────────────
 function makePie(slices,sz){
@@ -601,7 +597,7 @@ function makePie(slices,sz){
   if(!total)return`<circle cx="${sz/2}" cy="${sz/2}" r="${sz/2-2}" fill="var(--bg3)"/>`;
   const cx=sz/2,cy=sz/2,r=sz/2-2;let a=-Math.PI/2,out="";
   slices.filter(s=>s.v>0).forEach(s=>{
-    const sw=(s.v/total)*Math.PI*2;if(sw<0.001)return;
+    const sw=(s.v/total)*2*Math.PI;if(sw<0.001)return;
     const x1=cx+r*Math.cos(a),y1=cy+r*Math.sin(a);a+=sw;
     const x2=cx+r*Math.cos(a),y2=cy+r*Math.sin(a);
     out+=`<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${sw>Math.PI?1:0},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${s.color}"/>`;
@@ -609,617 +605,470 @@ function makePie(slices,sz){
   return out;
 }
 
-// ── CSV export ─────────────────────────────────────────────────────────────
+// ── progress bars ──────────────────────────────────────────────────────────
+function buildProgBar(pct){
+  const w=Math.min(pct,1),wp=Math.round(w*100),done=pct>=1;
+  let fill="";
+  if(done)fill=`width:100%;background:#1D9E75;border-radius:5px;`;
+  else if(w>0.001){const bs=Math.round(100/w);fill=`width:${wp}%;background:linear-gradient(90deg,#378ADD 0%,#7F77DD 28%,#EF9F27 62%,#D85A30 100%);background-size:${bs}% 100%;background-position:0 0;border-radius:5px;transition:width 0.4s;`;}
+  else fill=`width:0;`;
+  const marks=[25,50,75].map(m=>`<div style="position:absolute;left:${m}%;top:0;bottom:0;width:1.5px;background:var(--bg);opacity:${wp>=m?0.3:0.5};z-index:1;"></div>`).join("");
+  let h=`<div style="position:relative;height:10px;border-radius:5px;background:var(--bg3);overflow:hidden;margin:8px 0 3px;"><div style="position:absolute;left:0;top:0;height:100%;${fill}"></div>${marks}</div>`;
+  if(done){h+=`<div style="font-size:11px;color:#1D9E75;font-weight:500;margin-bottom:6px;">✓ Goal complete!</div>`;}
+  else{
+    h+=`<div style="position:relative;height:14px;margin-bottom:6px;">`;
+    [25,50,75].forEach(m=>{h+=`<span style="position:absolute;left:${m}%;transform:translateX(-50%);font-size:10px;color:var(--text3);opacity:${wp>=m?0.7:0.4};">${m}%</span>`;});
+    h+=`</div>`;
+  }
+  return h;
+}
+function buildMiniBar(pct){
+  const w=Math.min(pct,1),wp=Math.round(w*100),done=pct>=1;
+  let fill="";
+  if(done)fill=`width:100%;background:#1D9E75;`;
+  else if(w>0.001){const bs=Math.round(100/w);fill=`width:${wp}%;background:linear-gradient(90deg,#378ADD,#7F77DD,#EF9F27,#D85A30);background-size:${bs}% 100%;background-position:0 0;`;}
+  else fill=`width:0;`;
+  return`<div style="height:4px;border-radius:2px;background:var(--bg3);overflow:hidden;margin:6px 0 10px;"><div style="height:100%;border-radius:2px;${fill}"></div></div>`;
+}
+
+// ── CSV ────────────────────────────────────────────────────────────────────
 function dlCSV(rows,filename){
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
-  const a=document.createElement("a");
-  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
-  a.download=filename;a.click();
+  const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=filename;a.click();
 }
 function exportSessions(){
   const ss=getSessions(period).filter(s=>s.endTime);
   if(!ss.length){alert("No completed sessions for this period.");return;}
   const rows=[["Date","Start","End","Category","Duration (min)","Tags"]];
-  ss.forEach(s=>{
-    const cat=data.categories.find(c=>c.id===s.categoryId);
-    const d=new Date(s.startTime);
-    rows.push([d.toLocaleDateString(),d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),new Date(s.endTime).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),cat?cat.name:"Unknown",((s.endTime-s.startTime)/60000).toFixed(1),(s.tags||[]).join("; ")]);
-  });
+  ss.forEach(s=>{const cat=data.categories.find(c=>c.id===s.categoryId);const d=new Date(s.startTime);rows.push([d.toLocaleDateString(),d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),new Date(s.endTime).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),cat?cat.name:"Unknown",((s.endTime-s.startTime)/60000).toFixed(1),(s.tags||[]).join("; ")]);});
   dlCSV(rows,`sessions-${period.replace(/\s+/g,"-")}.csv`);
 }
 function exportDaily(){
   const ss=getSessions(period).filter(s=>s.endTime);
-  if(!ss.length){alert("No completed sessions for this period.");return;}
+  if(!ss.length){alert("No sessions for this period.");return;}
   const dayMap={};
-  ss.forEach(s=>{
-    const dk=dayKey(s.startTime);
-    if(!dayMap[dk])dayMap[dk]={_date:new Date(s.startTime)};
-    dayMap[dk][s.categoryId]=(dayMap[dk][s.categoryId]||0)+(s.endTime-s.startTime);
-  });
+  ss.forEach(s=>{const dk=dayKey(s.startTime);if(!dayMap[dk])dayMap[dk]={_date:new Date(s.startTime)};dayMap[dk][s.categoryId]=(dayMap[dk][s.categoryId]||0)+(s.endTime-s.startTime);});
   const cats=data.categories;
   const rows=[["Date",...cats.map(c=>c.name+" (hrs)")]];
-  Object.values(dayMap).sort((a,b)=>a._date-b._date).forEach(day=>{
-    rows.push([day._date.toLocaleDateString(),...cats.map(c=>day[c.id]?(day[c.id]/3600000).toFixed(2):"")]);
-  });
-  dlCSV(rows,`daily-summary-${period.replace(/\s+/g,"-")}.csv`);
+  Object.values(dayMap).sort((a,b)=>a._date-b._date).forEach(day=>{rows.push([day._date.toLocaleDateString(),...cats.map(c=>day[c.id]?(day[c.id]/3600000).toFixed(2):"")]);});
+  dlCSV(rows,`daily-${period.replace(/\s+/g,"-")}.csv`);
 }
-function exportCSV(){exportSessions();}
-
+function exportProjLogs(){
+  const logs=data.dailyLogs||[];
+  if(!logs.length){alert("No project logs yet.");return;}
+  const rows=[["Date","Project","Goal","Type","Value","Target","Completed"]];
+  [...logs].sort((a,b)=>a.date<b.date?-1:1).forEach(l=>{
+    const proj=(data.projects||[]).find(p=>p.id===l.projectId);
+    const goal=proj?(proj.dailyGoals||[]).find(g=>g.id===l.goalId):null;
+    rows.push([l.date,proj?proj.name:"?",goal?goal.name:"?",goal?goal.type:"?",l.value,goal&&goal.target!=null?goal.target:"",l.completed]);
+  });
+  dlCSV(rows,"project-logs.csv");
+}
+function exportProjSummary(){
+  const projs=data.projects||[];
+  if(!projs.length){alert("No projects yet.");return;}
+  const rows=[["Project","Parameter","Current","Goal","% Complete","Daily Goals"]];
+  projs.forEach(p=>{rows.push([p.name,p.paramName,p.currentTotal||0,p.goalTotal,p.goalTotal>0?Math.round((p.currentTotal||0)/p.goalTotal*100)+"%":"n/a",(p.dailyGoals||[]).length]);});
+  dlCSV(rows,"project-summary.csv");
+}
 
 // ── build: tracker ─────────────────────────────────────────────────────────
 function buildTracker(){
   const ac=data.activeSession?data.categories.find(c=>c.id===data.activeSession.categoryId):null;
   const elapsed=data.activeSession?Math.floor((Date.now()-data.activeSession.startTime)/1000):0;
   const activeTags=data.activeSession?data.activeSession.tags||[]:[];
-
-  // active display
   let h=`<div class="active-display" style="border-left-color:${ac?ac.color:"var(--border2)"}">`;
   if(ac){
-    h+=`<div class="active-label">${esc(ac.name)}</div>`;
-    h+=`<div class="active-timer" id="timer-el">${fmt(elapsed)}</div>`;
-    if(activeTags.length){
-      h+=`<div class="active-tags-row">`;
-      activeTags.forEach(t=>{
-        h+=`<span class="a-chip">${esc(t)}<button class="a-chip-rm" data-tag="${esc(t)}" onclick="removeActiveTag(this.dataset.tag)">×</button></span>`;
-      });
-      h+=`</div>`;
-    }
-  }else{
-    h+=`<div class="active-label">No active timer</div>`;
-    h+=`<div class="active-timer idle">–:––</div>`;
-  }
+    h+=`<div class="active-label">${esc(ac.name)}</div><div class="active-timer" id="timer-el">${fmt(elapsed)}</div>`;
+    if(activeTags.length){h+=`<div class="active-tags-row">`;activeTags.forEach(t=>{h+=`<span class="a-chip">${esc(t)}<button class="a-chip-rm" data-tag="${esc(t)}" onclick="removeActiveTag(this.dataset.tag)">×</button></span>`;});h+=`</div>`;}
+  }else{h+=`<div class="active-label">No active timer</div><div class="active-timer idle">–:––</div>`;}
   h+=`</div>`;
-
-  // tag input area
   if(ac){
-    const recentTags=recentTagsFor(ac.id).filter(t=>!activeTags.includes(t));
-    if(recentTags.length){
-      h+=`<div class="recent-tags-row">`;
-      recentTags.forEach(t=>{
-        h+=`<button class="recent-tag-chip" data-tag="${esc(t)}" onclick="pickPoolTag(this.dataset.tag)"><span class="recent-tag-dot" style="background:${ac.color}"></span>${esc(t)}</button>`;
-      });
-      h+=`</div>`;
-    }
+    const recent=recentTagsFor(ac.id).filter(t=>!activeTags.includes(t));
+    if(recent.length){h+=`<div class="recent-tags-row">`;recent.forEach(t=>{h+=`<button class="recent-tag-chip" data-tag="${esc(t)}" onclick="pickPoolTag(this.dataset.tag)"><span class="recent-tag-dot" style="background:${ac.color}"></span>${esc(t)}</button>`;});h+=`</div>`;}
     if(!showTagInput){
       h+=`<button class="tag-add-btn" onclick="openTagInput()">+ Add tag</button>`;
     }else{
-      const cid=data.activeSession.categoryId;
-      const pool=poolFor(cid).filter(t=>!activeTags.includes(t));
-      h+=`<div class="tag-panel">`;
-      h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><span class="tag-panel-title" style="margin-bottom:0">Add tag</span><button class="icon-btn" style="padding:2px 6px;font-size:13px;color:var(--text3)" onclick="closeTagInput()">Done</button></div>`;
-      h+=`<div class="tag-input-row">`;
-      h+=`<input class="inp" id="tag-in" type="text" placeholder="New tag or choose below…" onkeydown="if(event.key==='Enter'){event.preventDefault();addActiveTag();}">`;
-      h+=`<button class="tag-set-btn" onclick="addActiveTag()">Add</button>`;
-      h+=`</div>`;
-      if(pool.length){
-        h+=`<div class="pool-chips">`;
-        pool.forEach(t=>{
-          h+=`<button class="pool-chip" data-tag="${esc(t)}" onclick="pickPoolTag(this.dataset.tag)">${esc(t)}</button>`;
-        });
-        h+=`</div>`;
-      }
+      const pool=poolFor(data.activeSession.categoryId).filter(t=>!activeTags.includes(t));
+      h+=`<div class="tag-panel"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><span class="tag-panel-title" style="margin-bottom:0">Add tag</span><button class="icon-btn" style="padding:2px 6px;font-size:13px;" onclick="closeTagInput()">Done</button></div>`;
+      h+=`<div class="tag-input-row"><input class="inp" id="tag-in" type="text" placeholder="New tag or choose below…" onkeydown="if(event.key==='Enter'){event.preventDefault();addActiveTag();}"><button class="tag-set-btn" onclick="addActiveTag()">Add</button></div>`;
+      if(pool.length){h+=`<div class="pool-chips">`;pool.forEach(t=>{h+=`<button class="pool-chip" data-tag="${esc(t)}" onclick="pickPoolTag(this.dataset.tag)">${esc(t)}</button>`;});h+=`</div>`;}
       h+=`</div>`;
     }
   }
-
-  // category list
   h+=`<div class="cat-list">`;
   data.categories.forEach(cat=>{
     const isActive=!!(data.activeSession&&data.activeSession.categoryId===cat.id);
-    h+=`<div class="cat-row">`;
-    h+=`<button class="cat-btn${isActive?" active":""}" style="border-left-color:${cat.color}" onclick="startCat('${cat.id}')">`;
-    h+=`<span style="font-weight:${isActive?500:400}">${esc(cat.name)}</span>`;
-    h+=`<div class="cat-btn-right">`;
-    if(isActive)h+=`<span class="cat-hint">stop</span>`;
-    h+=`<span class="cat-dot" style="background:${cat.color}"></span>`;
-    h+=`</div></button>`;
-    h+=`<button class="cat-rm" onclick="removeCat('${cat.id}')">×</button>`;
-    h+=`</div>`;
+    h+=`<div class="cat-row"><button class="cat-btn${isActive?" active":""}" style="border-left-color:${cat.color}" onclick="startCat('${cat.id}')"><span>${esc(cat.name)}</span><div class="cat-btn-right">${isActive?`<span class="cat-hint">stop</span>`:""}<span class="cat-dot" style="background:${cat.color}"></span></div></button><button class="cat-rm" onclick="removeCat('${cat.id}')">×</button></div>`;
   });
-  h+=`</div>`;
-
-  // add category
-  h+=`<div class="add-wrap">`;
-  if(!addingCat){
-    h+=`<button class="add-link" onclick="toggleAddCat()">+ Add category</button>`;
-  }else{
-    h+=`<div class="add-row">`;
-    h+=`<input class="inp" id="new-cat-in" placeholder="Category name" onkeydown="newCatKey(event)" style="flex:1">`;
-    h+=`<button class="sm-btn" onclick="submitCat()">Add</button>`;
-    h+=`<button class="sm-btn" onclick="toggleAddCat()">Cancel</button>`;
-    h+=`</div>`;
-  }
-  h+=`</div>`;
-  return h;
+  h+=`</div><div class="add-wrap">`;
+  if(!addingCat){h+=`<button class="add-link" onclick="toggleAddCat()">+ Add category</button>`;}
+  else{h+=`<div class="add-row"><input class="inp" id="new-cat-in" placeholder="Category name" onkeydown="newCatKey(event)" style="flex:1"><button class="sm-btn" onclick="submitCat()">Add</button><button class="sm-btn" onclick="toggleAddCat()">Cancel</button></div>`;}
+  h+=`</div>`;return h;
 }
 
 // ── build: insights ────────────────────────────────────────────────────────
 function buildInsights(){
   const periods=["today","week","month","year","all time"];
-
-  // period + export row
   let h=`<div class="period-row">`;
-  periods.forEach(p=>{
-    h+=`<button class="period-btn${period===p?" active":""}" onclick="setPeriod('${p}')">${p.charAt(0).toUpperCase()+p.slice(1)}</button>`;
-  });
-  h+=`<button class="export-btn" onclick="exportSessions()">Sessions CSV</button>`;
-  h+=`<button class="export-btn" onclick="exportDaily()">Daily CSV</button></div>`;
-
-  // collect all tags used in this period, grouped by category
+  periods.forEach(p=>{h+=`<button class="period-btn${period===p?" active":""}" onclick="setPeriod('${p}')">${p.charAt(0).toUpperCase()+p.slice(1)}</button>`;});
+  h+=`<button class="export-btn" style="margin-left:auto" onclick="exportSessions()">Sessions CSV</button><button class="export-btn" onclick="exportDaily()">Daily CSV</button></div>`;
   const allSessions=getSessions(period);
   const tagsByCat={};
-  allSessions.filter(s=>s.endTime).forEach(s=>{
-    (s.tags||[]).forEach(t=>{
-      if(!tagsByCat[s.categoryId])tagsByCat[s.categoryId]=new Set();
-      tagsByCat[s.categoryId].add(t);
-    });
-  });
-  const hasTags=Object.keys(tagsByCat).some(cid=>tagsByCat[cid].size>0);
-
-  // tag filter chips
+  allSessions.filter(s=>s.endTime).forEach(s=>{(s.tags||[]).forEach(t=>{if(!tagsByCat[s.categoryId])tagsByCat[s.categoryId]=new Set();tagsByCat[s.categoryId].add(t);});});
+  const hasTags=Object.keys(tagsByCat).some(c=>tagsByCat[c].size>0);
   if(hasTags){
     h+=`<div class="tag-filter-row">`;
-    data.categories.forEach(cat=>{
-      if(!tagsByCat[cat.id])return;
-      [...tagsByCat[cat.id]].sort().forEach(tag=>{
-        const isActive=!!(activeTagFilter&&activeTagFilter.catId===cat.id&&activeTagFilter.tag===tag);
-        h+=`<button class="tag-filter-chip${isActive?" active":""}" data-catid="${cat.id}" data-tag="${esc(tag)}" onclick="setTagFilter(this.dataset.catid,this.dataset.tag)">`;
-        h+=`<span class="tag-filter-dot" style="background:${cat.color}"></span>${esc(tag)}`;
-        h+=`</button>`;
-      });
-    });
+    data.categories.forEach(cat=>{if(!tagsByCat[cat.id])return;[...tagsByCat[cat.id]].sort().forEach(tag=>{const isA=!!(activeTagFilter&&activeTagFilter.catId===cat.id&&activeTagFilter.tag===tag);h+=`<button class="tag-filter-chip${isA?" active":""}" data-catid="${cat.id}" data-tag="${esc(tag)}" onclick="setTagFilter(this.dataset.catid,this.dataset.tag)"><span class="tag-filter-dot" style="background:${cat.color}"></span>${esc(tag)}</button>`;});});
     h+=`</div>`;
   }
-
-  // apply filter to sessions
   let ss=allSessions;
   if(activeTagFilter){
     ss=ss.filter(s=>s.categoryId===activeTagFilter.catId&&(s.tags||[]).includes(activeTagFilter.tag));
-    const filterCat=data.categories.find(c=>c.id===activeTagFilter.catId);
-    h+=`<div class="filter-bar">`;
-    h+=`<span class="tag-filter-dot" style="background:${filterCat?filterCat.color:"var(--text3)"}"></span>`;
-    h+=`<span>Showing <span class="filter-bar-tag">${esc(activeTagFilter.tag)}</span>`;
-    if(filterCat)h+=` in ${esc(filterCat.name)}`;
-    h+=`</span>`;
-    h+=`<button class="filter-clear-btn" onclick="clearTagFilter()">Clear ×</button>`;
-    h+=`</div>`;
+    const fc=data.categories.find(c=>c.id===activeTagFilter.catId);
+    h+=`<div class="filter-bar"><span class="tag-filter-dot" style="background:${fc?fc.color:"var(--text3)"}"></span><span>Showing <span class="filter-bar-tag">${esc(activeTagFilter.tag)}</span>${fc?` in ${esc(fc.name)}`:""}</span><button class="filter-clear-btn" onclick="clearTagFilter()">Clear ×</button></div>`;
   }
-
-  // stats from filtered sessions
   const stats={};data.categories.forEach(c=>{stats[c.id]=0;});
   ss.forEach(s=>{if(s.categoryId in stats)stats[s.categoryId]+=(s.endTime-s.startTime);});
   const total=Object.values(stats).reduce((a,b)=>a+b,0);
   const sorted=data.categories.map(c=>({...c,ms:stats[c.id]||0})).sort((a,b)=>b.ms-a.ms);
-
-  // daily avg from filtered sessions
   let avg=null;
-  if(period!=="today"&&ss.length){
-    const days=new Set(ss.map(s=>dayKey(s.startTime)));
-    avg=ss.reduce((a,s)=>a+(s.endTime-s.startTime),0)/days.size;
-  }
-
-  // summary cards
-  h+=`<div class="summary-grid">`;
-  h+=`<div class="sum-card"><div class="sum-label">${period==="today"?"today's total":"total tracked"}</div><div class="sum-val">${total>0?fmtMs(total):"–"}</div></div>`;
+  if(period!=="today"&&ss.length){const days=new Set(ss.map(s=>dayKey(s.startTime)));avg=ss.reduce((a,s)=>a+(s.endTime-s.startTime),0)/days.size;}
+  h+=`<div class="summary-grid"><div class="sum-card"><div class="sum-label">${period==="today"?"today's total":"total tracked"}</div><div class="sum-val">${total>0?fmtMs(total):"–"}</div></div>`;
   if(avg)h+=`<div class="sum-card"><div class="sum-label">daily avg</div><div class="sum-val">${fmtMs(avg)}</div></div>`;
   h+=`</div>`;
-
-  // pie
   if(total>0){
     const sz=120;
-    h+=`<div class="pie-wrap">`;
-    h+=`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;border-radius:50%;overflow:hidden">${makePie(sorted.map(c=>({v:c.ms,color:c.color})),sz)}</svg>`;
-    h+=`<div class="pie-legend">`;
-    sorted.filter(c=>c.ms>0).forEach(c=>{
-      h+=`<div class="pie-li"><span class="pie-sw" style="background:${c.color}"></span><span class="pie-name">${esc(c.name)}</span><span class="pie-val">${Math.round(c.ms/total*100)}%</span></div>`;
-    });
+    h+=`<div class="pie-wrap"><svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;border-radius:50%;overflow:hidden">${makePie(sorted.map(c=>({v:c.ms,color:c.color})),sz)}</svg><div class="pie-legend">`;
+    sorted.filter(c=>c.ms>0).forEach(c=>{h+=`<div class="pie-li"><span class="pie-sw" style="background:${c.color}"></span><span class="pie-name">${esc(c.name)}</span><span class="pie-val">${Math.round(c.ms/total*100)}%</span></div>`;});
     h+=`</div></div>`;
   }
-
-  // category bars with tag breakdown
   h+=`<div class="cat-bars">`;
-  sorted.forEach(cat=>{
-    const pct=total>0?Math.round(cat.ms/total*100):0;
-    h+=`<div>`;
-    h+=`<div class="bar-head"><span>${esc(cat.name)}${cat.ms>0?`<span class="bar-pct">${pct}%</span>`:""}</span><span class="bar-time">${cat.ms>0?fmtMs(cat.ms):"–"}</span></div>`;
-    h+=`<div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${cat.color}"></div></div>`;
-    h+=`</div>`;
-  });
+  sorted.forEach(cat=>{const pct=total>0?Math.round(cat.ms/total*100):0;h+=`<div><div class="bar-head"><span>${esc(cat.name)}${cat.ms>0?`<span class="bar-pct">${pct}%</span>`:""}</span><span class="bar-time">${cat.ms>0?fmtMs(cat.ms):"–"}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${cat.color}"></div></div></div>`;});
   h+=`</div>`;
-
-  // collect tag totals across all categories (respects active filter)
   const allTagStats=[];
-  data.categories.forEach(cat=>{
-    const tStats={};
-    ss.filter(s=>s.categoryId===cat.id).forEach(s=>{
-      (s.tags||[]).forEach(t=>{tStats[t]=(tStats[t]||0)+(s.endTime-s.startTime);});
-    });
-    Object.entries(tStats).forEach(([t,ms])=>allTagStats.push({tag:t,ms,color:cat.color,catName:cat.name}));
-  });
+  data.categories.forEach(cat=>{const ts={};ss.filter(s=>s.categoryId===cat.id).forEach(s=>{(s.tags||[]).forEach(t=>{ts[t]=(ts[t]||0)+(s.endTime-s.startTime);});});Object.entries(ts).forEach(([t,ms])=>allTagStats.push({tag:t,ms,color:cat.color}));});
   allTagStats.sort((a,b)=>b.ms-a.ms);
-
   if(allTagStats.length){
     const tagTotal=allTagStats.reduce((a,t)=>a+t.ms,0);
-    h+=`<div class="tag-viz-hd">`;
-    h+=`<span class="tag-viz-title">Tags</span>`;
-    h+=`<div class="viz-toggle">`;
-    h+=`<button class="viz-toggle-btn${tagViewMode==="bar"?" active":""}" onclick="setTagViewMode('bar')">Bar</button>`;
-    h+=`<button class="viz-toggle-btn${tagViewMode==="pie"?" active":""}" onclick="setTagViewMode('pie')">Pie</button>`;
-    h+=`</div></div>`;
-
+    h+=`<div class="tag-viz-hd"><span class="tag-viz-title">Tags</span><div class="viz-toggle"><button class="viz-toggle-btn${tagViewMode==="bar"?" active":""}" onclick="setTagViewMode('bar')">Bar</button><button class="viz-toggle-btn${tagViewMode==="pie"?" active":""}" onclick="setTagViewMode('pie')">Pie</button></div></div>`;
     if(tagViewMode==="bar"){
-      const maxMs=allTagStats[0].ms;
-      h+=`<div class="tag-bars">`;
-      allTagStats.forEach(({tag,ms,color,catName})=>{
-        h+=`<div class="tag-bar-row">`;
-        h+=`<div class="tag-bar-label"><span class="tag-bar-dot" style="background:${color}"></span>${esc(tag)}</div>`;
-        h+=`<div class="tag-bar-track"><div class="tag-bar-fill" style="width:${Math.round(ms/maxMs*100)}%;background:${color}"></div></div>`;
-        h+=`<div class="tag-bar-val">${fmtMs(ms)}</div>`;
-        h+=`</div>`;
-      });
+      const maxMs=allTagStats[0].ms;h+=`<div class="tag-bars">`;
+      allTagStats.forEach(({tag,ms,color})=>{h+=`<div class="tag-bar-row"><div class="tag-bar-label"><span class="tag-bar-dot" style="background:${color}"></span>${esc(tag)}</div><div class="tag-bar-track"><div class="tag-bar-fill" style="width:${Math.round(ms/maxMs*100)}%;background:${color}"></div></div><div class="tag-bar-val">${fmtMs(ms)}</div></div>`;});
       h+=`</div>`;
     }else{
-      const sz=120;
-      h+=`<div class="tag-pie-wrap">`;
-      h+=`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;border-radius:50%;overflow:hidden">${makePie(allTagStats.map(t=>({v:t.ms,color:t.color})),sz)}</svg>`;
-      h+=`<div class="pie-legend">`;
-      allTagStats.forEach(({tag,ms,color})=>{
-        h+=`<div class="pie-li"><span class="pie-sw" style="background:${color}"></span><span class="pie-name">${esc(tag)}</span><span class="pie-val">${Math.round(ms/tagTotal*100)}%</span></div>`;
-      });
+      const sz=120;h+=`<div class="tag-pie-wrap"><svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;border-radius:50%;overflow:hidden">${makePie(allTagStats.map(t=>({v:t.ms,color:t.color})),sz)}</svg><div class="pie-legend">`;
+      allTagStats.forEach(({tag,ms,color})=>{h+=`<div class="pie-li"><span class="pie-sw" style="background:${color}"></span><span class="pie-name">${esc(tag)}</span><span class="pie-val">${Math.round(ms/tagTotal*100)}%</span></div>`;});
       h+=`</div></div>`;
     }
   }
-
-  // session list
   const completed=ss.filter(s=>s.endTime);
   if(completed.length){
     h+=`<div class="sec-label">Sessions</div><div class="session-list">`;
     completed.slice(-25).reverse().forEach(s=>{
-      const cat=data.categories.find(c=>c.id===s.categoryId);
-      if(!cat)return;
-      const dur=Math.floor((s.endTime-s.startTime)/1000);
-      const d=new Date(s.startTime);
-      const tStr=period==="today"
-        ?d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})
-        :`${d.toLocaleDateString([],{month:"short",day:"numeric"})} · ${d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`;
-      const isExp=expandedSid===s.id;
-      const tagsList=s.tags||[];
-      const nameDisplay=cat.name+(tagsList.length?" · "+tagsList.join(", "):"");
-
-      h+=`<div class="s-item" style="border-left-color:${cat.color}">`;
-      h+=`<div class="s-head" onclick="toggleSession('${s.id}')">`;
-      h+=`<div class="s-main"><div class="s-name">${esc(nameDisplay)}</div><div class="s-time">${tStr}</div></div>`;
-      h+=`<span class="s-dur">${fmt(dur)}</span><span class="s-caret">${isExp?"▲":"▼"}</span>`;
-      h+=`</div>`;
-
+      const cat=data.categories.find(c=>c.id===s.categoryId);if(!cat)return;
+      const dur=Math.floor((s.endTime-s.startTime)/1000),d=new Date(s.startTime);
+      const tStr=period==="today"?d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):`${d.toLocaleDateString([],{month:"short",day:"numeric"})} · ${d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}`;
+      const isExp=expandedSid===s.id,tags=s.tags||[];
+      const nm=cat.name+(tags.length?" · "+tags.join(", "):"");
+      h+=`<div class="s-item" style="border-left-color:${cat.color}"><div class="s-head" onclick="toggleSession('${s.id}')"><div class="s-main"><div class="s-name">${esc(nm)}</div><div class="s-time">${tStr}</div></div><span class="s-dur">${fmt(dur)}</span><span class="s-caret">${isExp?"▲":"▼"}</span></div>`;
       if(isExp){
-        const pool=poolFor(s.categoryId).filter(t=>!tagsList.includes(t));
-        h+=`<div class="s-edit">`;
-        h+=`<div class="s-edit-chips">`;
-        tagsList.forEach(t=>{
-          h+=`<span class="s-chip">${esc(t)}<button class="s-chip-rm" data-sid="${s.id}" data-tag="${esc(t)}" onclick="removeSessionTag(this.dataset.sid,this.dataset.tag)">×</button></span>`;
-        });
-        if(!expandedAddingTag){
-          h+=`<button class="s-add-btn" onclick="openSessionTagInput('${s.id}')">+ tag</button>`;
-        }
+        const pool=poolFor(s.categoryId).filter(t=>!tags.includes(t));
+        h+=`<div class="s-edit"><div class="s-edit-chips">`;
+        tags.forEach(t=>{h+=`<span class="s-chip">${esc(t)}<button class="s-chip-rm" data-sid="${s.id}" data-tag="${esc(t)}" onclick="removeSessionTag(this.dataset.sid,this.dataset.tag)">×</button></span>`;});
+        if(!expandedAddingTag)h+=`<button class="s-add-btn" onclick="openSessionTagInput('${s.id}')">+ tag</button>`;
         h+=`</div>`;
         if(expandedAddingTag){
-          h+=`<div class="s-tag-row">`;
-          h+=`<input class="inp" id="sedit-in-${s.id}" placeholder="Add tag…" onkeydown="if(event.key==='Enter'){event.preventDefault();addSessionTag('${s.id}');}">`;
-          h+=`<button class="sm-btn" onclick="addSessionTag('${s.id}')">Add</button>`;
-          h+=`<button class="sm-btn" onclick="closeSessionTagInput()">Done</button>`;
-          h+=`</div>`;
-          if(pool.length){
-            h+=`<div class="s-pool-chips">`;
-            pool.forEach(t=>{
-              h+=`<button class="s-pool-chip" data-sid="${s.id}" data-tag="${esc(t)}" onclick="pickSessionPoolTag(this.dataset.sid,this.dataset.tag)">${esc(t)}</button>`;
-            });
-            h+=`</div>`;
-          }
+          h+=`<div class="s-tag-row"><input class="inp" id="sedit-in-${s.id}" placeholder="Add tag…" onkeydown="if(event.key==='Enter'){event.preventDefault();addSessionTag('${s.id}');}"><button class="sm-btn" onclick="addSessionTag('${s.id}')">Add</button><button class="sm-btn" onclick="closeSessionTagInput()">Done</button></div>`;
+          if(pool.length){h+=`<div class="s-pool-chips">`;pool.forEach(t=>{h+=`<button class="s-pool-chip" data-sid="${s.id}" data-tag="${esc(t)}" onclick="pickSessionPoolTag(this.dataset.sid,this.dataset.tag)">${esc(t)}</button>`;});h+=`</div>`;}
         }
         h+=`</div>`;
       }
       h+=`</div>`;
     });
     h+=`</div>`;
-  }else{
-    h+=`<div class="empty">${activeTagFilter?"No sessions match this filter":"No sessions for this period"}</div>`;
-  }
+  }else{h+=`<div class="empty">${activeTagFilter?"No sessions match this filter":"No sessions for this period"}</div>`;}
   return h;
 }
 
 // ── build: manage ──────────────────────────────────────────────────────────
 function buildManage(){
-  let h=`<div class="manage-section">`;
-  h+=`<div class="manage-section-hd"><span class="manage-section-title">Tags</span></div>`;
-  h+=`<div class="manage-section-desc">Edit or remove tags. Removing stops it appearing as a suggestion — past sessions keep their labels. Renaming updates all sessions.</div>`;
-
+  let h=`<div class="manage-section"><div class="manage-section-hd"><span class="manage-section-title">Tags</span></div><div class="manage-section-desc">Edit or remove tags. Removing stops it appearing as a suggestion — past sessions keep their labels. Renaming updates all sessions.</div>`;
   data.categories.forEach(cat=>{
     const pool=poolFor(cat.id);
-    h+=`<div class="tags-cat-block">`;
-    h+=`<div class="tags-cat-hd"><span class="tags-cat-dot" style="background:${cat.color}"></span><span class="tags-cat-name">${esc(cat.name)}</span></div>`;
+    h+=`<div class="tags-cat-block"><div class="tags-cat-hd"><span class="tags-cat-dot" style="background:${cat.color}"></span><span class="tags-cat-name">${esc(cat.name)}</span></div>`;
     if(pool.length){
       h+=`<div class="tag-mgmt-list">`;
       pool.forEach(tag=>{
-        const count=tagUseCount(cat.id,tag);
-        const isEditing=!!(editingTag&&editingTag.catId===cat.id&&editingTag.tag===tag);
+        const count=tagUseCount(cat.id,tag),isEd=!!(editingTag&&editingTag.catId===cat.id&&editingTag.tag===tag);
         h+=`<div class="tag-mgmt-item">`;
-        if(isEditing){
-          const eid=`tedit-${cat.id}-${esc(tag)}`;
-          h+=`<div class="tag-edit-row">`;
-          h+=`<input class="inp" id="${eid}" value="${esc(tag)}" onkeydown="tagEditKey(event,'${esc(cat.id)}','${esc(tag)}','${eid}')">`;
-          h+=`<button class="sm-btn" onclick="submitTagEdit('${esc(cat.id)}','${esc(tag)}','${eid}')">Save</button>`;
-          h+=`<button class="sm-btn" onclick="cancelTagEdit()">Cancel</button>`;
-          h+=`</div>`;
-        }else{
-          h+=`<span class="tag-mgmt-name">${esc(tag)}</span>`;
-          h+=`<span class="tag-mgmt-count">${count} session${count!==1?"s":""}</span>`;
-          h+=`<button class="tag-mgmt-edit" data-catid="${cat.id}" data-tag="${esc(tag)}" onclick="startTagEdit(this.dataset.catid,this.dataset.tag)" title="Rename">✎</button>`;
-          h+=`<button class="tag-mgmt-del" data-catid="${cat.id}" data-tag="${esc(tag)}" onclick="deletePoolTag(this.dataset.catid,this.dataset.tag)" title="Delete">×</button>`;
-        }
+        if(isEd){const eid=`tedit-${cat.id}-${esc(tag)}`;h+=`<div class="tag-edit-row"><input class="inp" id="${eid}" value="${esc(tag)}" onkeydown="tagEditKey(event,'${esc(cat.id)}','${esc(tag)}','${eid}')"><button class="sm-btn" onclick="submitTagEdit('${esc(cat.id)}','${esc(tag)}','${eid}')">Save</button><button class="sm-btn" onclick="cancelTagEdit()">Cancel</button></div>`;}
+        else{h+=`<span class="tag-mgmt-name">${esc(tag)}</span><span class="tag-mgmt-count">${count} session${count!==1?"s":""}</span><button class="tag-mgmt-edit" data-catid="${cat.id}" data-tag="${esc(tag)}" onclick="startTagEdit(this.dataset.catid,this.dataset.tag)">✎</button><button class="tag-mgmt-del" data-catid="${cat.id}" data-tag="${esc(tag)}" onclick="deletePoolTag(this.dataset.catid,this.dataset.tag)">×</button>`;}
         h+=`</div>`;
       });
       h+=`</div>`;
-    }else{
-      h+=`<div class="tags-empty">No tags yet for this category.</div>`;
-    }
+    }else{h+=`<div class="tags-empty">No tags yet.</div>`;}
     h+=`</div>`;
   });
-  h+=`</div>`;
-  return h;
+  h+=`</div>`;return h;
 }
 
 // ── build: settings ────────────────────────────────────────────────────────
 function buildSettings(){
   const connected=!!(token&&gistId);
-  const ablyConnected=!!(ablyClient&&ablyChannel);
-
-  // GitHub card
   let h=`<div class="setup-card"><div class="setup-title">GitHub sync</div>`;
   if(connected){
-    h+=`<div class="setup-desc">Connected. Data saves automatically via a private GitHub Gist.</div>`;
-    h+=`<div class="setup-field"><label>Gist ID</label><input class="inp" value="${esc(gistId)}" readonly style="font-family:var(--mono);font-size:12px;color:var(--text3)"></div>`;
-    h+=`<div class="setup-actions"><button class="sm-btn" onclick="syncLoad()">Sync now</button><button class="danger-btn" onclick="doDisconnect()">Disconnect</button></div>`;
+    h+=`<div class="setup-desc">Connected. Data syncs automatically via a private GitHub Gist.</div><div class="setup-field"><label>Gist ID</label><input class="inp" value="${esc(gistId)}" readonly style="font-family:var(--mono);font-size:12px;color:var(--text3)"></div><div class="setup-actions"><button class="sm-btn" onclick="syncLoad()">Sync now</button><button class="danger-btn" onclick="doDisconnect()">Disconnect</button></div>`;
   }else{
-    h+=`<div class="setup-desc">Connect GitHub to save data across devices. Stored in a <strong>private</strong> Gist only you can see.<br><br>`;
-    h+=`<strong>Steps:</strong><br>1. Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>`;
-    h+=`2. Give it any name, e.g. "Time Tracker"<br>3. Check <strong>gist</strong> scope only<br>4. Generate and paste the token below</div>`;
-    h+=`<div class="setup-field"><label>Personal Access Token</label><input class="inp" id="tok-in" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div>`;
-    h+=`<div id="setup-msg"></div>`;
-    h+=`<div class="setup-actions"><button class="primary-btn" id="conn-btn" onclick="doConnect()">Connect</button></div>`;
+    h+=`<div class="setup-desc">Connect GitHub to sync across devices. Stored in a <strong>private</strong> Gist only you can see.<br><br><strong>Steps:</strong><br>1. Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>2. Give it any name, e.g. "Tracker"<br>3. Check <strong>gist</strong> scope only<br>4. Generate and paste the token below</div>`;
+    h+=`<div class="setup-field"><label>Personal Access Token</label><input class="inp" id="tok-in" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div><div id="setup-msg"></div><div class="setup-actions"><button class="primary-btn" id="conn-btn" onclick="doConnect()">Connect</button></div>`;
   }
-  h+=`</div>`;
+  return h+`</div>`;
+}
 
-  // Ably card
-  h+=`<div class="setup-card"><div class="setup-title">Real-time sync</div>`;
-  if(!connected){
-    h+=`<div class="setup-desc" style="color:var(--text3)">Connect GitHub first, then set up real-time sync.</div>`;
-  }else if(ablyConnState==="connected"){
-    h+=`<div class="setup-desc">Real-time sync active. Changes on one device appear on the other instantly.</div>`;
-    h+=`<div class="setup-actions"><button class="danger-btn" onclick="doAblyDisconnect()">Disconnect</button></div>`;
-  }else if(ablyConnState==="connecting"){
-    h+=`<div class="setup-desc" style="color:var(--text3)">Connecting to Ably…</div>`;
-  }else if(ablyConnState==="error"){
-    h+=`<div class="setup-desc">Connection failed. Check that your API key is correct.</div>`;
-    h+=`<div class="setup-field"><label>Ably API Key</label><input class="inp" id="ably-in" type="password" placeholder="xxxx.yyyy:zzzzzzzz"></div>`;
-    h+=`<div class="setup-actions"><button class="primary-btn" id="ably-btn" onclick="doAblyConnect()">Retry</button><button class="danger-btn" onclick="doAblyDisconnect()">Clear</button></div>`;
-  }else{
-    h+=`<div class="setup-desc">Add an Ably API key to sync timer changes between devices instantly.<br><br>`;
-    h+=`<strong>Steps:</strong><br>1. Go to <a href="https://ably.com" target="_blank">ably.com</a> and create a free account<br>`;
-    h+=`2. Create an App (Pub/Sub), then go to <strong>API Keys</strong><br>`;
-    h+=`3. Copy the <strong>Root</strong> key (looks like <code style="font-family:var(--mono);font-size:12px">xxxx.yyyy:zzzz</code>)<br>`;
-    h+=`4. Paste it below</div>`;
-    h+=`<div class="setup-field"><label>Ably API Key</label><input class="inp" id="ably-in" type="password" placeholder="xxxx.yyyy:zzzzzzzz"></div>`;
-    h+=`<div id="ably-msg"></div>`;
-    h+=`<div class="setup-actions"><button class="primary-btn" id="ably-btn" onclick="doAblyConnect()">Connect</button></div>`;
-  }
-  h+=`</div>`;
-
+// ── build: project today ───────────────────────────────────────────────────
+function buildPTToday(){
+  const projs=(data.projects||[]).filter(p=>(p.dailyGoals||[]).length>0);
+  if(!(data.projects||[]).length)return`<div class="empty">No projects yet — add one in the Projects tab.</div>`;
+  if(!projs.length)return`<div class="empty">No daily goals set — add goals in the Projects tab.</div>`;
+  let h="";
+  projs.forEach(proj=>{
+    const pct=proj.goalTotal>0?Math.min((proj.currentTotal||0)/proj.goalTotal,1):0;
+    h+=`<div class="pt-block" style="border-left-color:${proj.color}">`;
+    h+=`<div class="pt-block-hd"><span class="pt-dot" style="background:${proj.color}"></span><span class="pt-name">${esc(proj.name)}</span><span class="pt-stat">${fmtN(proj.currentTotal||0)} / ${fmtN(proj.goalTotal)} ${esc(proj.paramName)}</span></div>`;
+    h+=buildMiniBar(pct);
+    (proj.dailyGoals||[]).forEach(goal=>{
+      const log=getTodayLog(proj.id,goal.id);
+      const streak=calcStreak(proj.id,goal.id);
+      const isEditing=!!(editingLogKey&&editingLogKey.pId===proj.id&&editingLogKey.gId===goal.id);
+      h+=`<div class="goal-row">`;
+      h+=`<div class="goal-row-l"><span class="goal-nm">${esc(goal.name)}</span>${streak>0?`<span class="goal-streak">🔥 ${streak}</span>`:""}</div>`;
+      h+=`<div class="goal-row-r">`;
+      if(goal.type==="check"){
+        const checked=!!(log&&log.completed);
+        h+=`<div class="check-wrap"><input type="checkbox" class="check-box" id="ck-${proj.id}-${goal.id}" ${checked?"checked":""} onchange="logGoal('${proj.id}','${goal.id}',this.checked)"><label class="check-lbl${checked?" done":""}" for="ck-${proj.id}-${goal.id}">${checked?"✓ Done":"Mark done"}</label></div>`;
+      }else{
+        if(log&&!isEditing){
+          const done=log.completed;
+          h+=`<span class="goal-logged${done?" done":" part"}">${done?"✓ ":""}${fmtN(log.value)} logged</span>`;
+          h+=`<button class="goal-edit-btn" onclick="startEditLog('${proj.id}','${goal.id}')">Edit</button>`;
+        }else{
+          h+=`<input class="inp goal-num-in" id="gl-${proj.id}-${goal.id}" type="number" placeholder="${goal.target}" value="${log?log.value:""}" min="0" onkeydown="if(event.key==='Enter'){event.preventDefault();submitLog('${proj.id}','${goal.id}');}">`;
+          h+=`<span class="goal-target">/ ${fmtN(goal.target)} ${esc(proj.paramName)}</span>`;
+          h+=`<button class="sm-btn" onclick="submitLog('${proj.id}','${goal.id}')">Log</button>`;
+          if(isEditing)h+=`<button class="sm-btn" onclick="cancelEditLog()">Cancel</button>`;
+        }
+      }
+      h+=`</div></div>`;
+    });
+    h+=`</div>`;
+  });
   return h;
 }
 
-// ── render ─────────────────────────────────────────────────────────────────
-function renderTopbar(){
-  const el=document.getElementById("topbar");
-  if(!el)return;
-  el.innerHTML=
-    `<div style="display:flex;align-items:center;gap:10px;">`+
-    `<img src="logo.png" alt="" id="logo-img" style="height:28px;width:auto;display:block;" onerror="this.style.display='none'">`+
-    `<span class="tb-title">Time Tracker</span>`+
-    `</div>`+
-    `<div class="tb-right">`+
-    `<span class="sync-dot ${syncState}" id="sync-dot"></span>`+
-    `<button class="icon-btn" onclick="toggleSettings()">${showSettings?"←":"⚙"}</button>`+
-    `</div>`;
-}
-
-function renderNav(){
-  const el=document.getElementById("nav");
-  if(!el)return;
-  if(showSettings){el.innerHTML="";return;}
-  el.innerHTML=
-    `<div class="nav-shell" id="nav-shell">`+
-    `<div class="nav-bubble" id="nav-bubble"></div>`+
-    TABS.map(t=>`<button class="nav-tab${view===t?" active":""}" id="nav-tab-${t}" onclick="setView('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join("")+
-    `</div>`;
-  // Snap bubble to current tab after paint
-  requestAnimationFrame(()=>{
-    const bubble=document.getElementById("nav-bubble");
-    const tab=document.getElementById("nav-tab-"+view);
-    if(!bubble||!tab)return;
-    bubble.style.transition="none";
-    bubble.style.transform=`translateX(${tab.offsetLeft}px)`;
-    bubble.style.width=tab.offsetWidth+"px";
-    requestAnimationFrame(()=>{bubble.style.transition="";});
+// ── build: project projects ────────────────────────────────────────────────
+function buildPTProjects(){
+  const projs=data.projects||[];
+  let h="";
+  projs.forEach(proj=>{
+    const pct=proj.goalTotal>0?Math.min((proj.currentTotal||0)/proj.goalTotal,1):0;
+    const done=pct>=1;
+    h+=`<div class="proj-card" style="border-left-color:${proj.color}">`;
+    h+=`<div class="proj-card-hd"><span class="proj-card-name">${esc(proj.name)}</span>${done?`<span class="proj-done-badge">✓ Complete</span>`:""}<button class="icon-btn" onclick="removeProject('${proj.id}')" style="margin-left:auto;flex-shrink:0;">×</button></div>`;
+    h+=`<div class="proj-prog-nums">${fmtN(proj.currentTotal||0)} / ${fmtN(proj.goalTotal)} ${esc(proj.paramName)} &middot; <strong>${(pct*100).toFixed(1))}%</strong></div>`;
+    h+=buildProgBar(pct);
+    const goals=proj.dailyGoals||[];
+    if(goals.length){
+      h+=`<div class="proj-goals-list">`;
+      goals.forEach(goal=>{
+        const streak=calcStreak(proj.id,goal.id);
+        const meta=goal.type==="check"?"Check goal":`Number · ${fmtN(goal.target)} / day${streak>0?` · 🔥 ${streak}`:""}`;
+        h+=`<div class="proj-goal-item"><div class="proj-goal-info"><span class="proj-goal-name">${esc(goal.name)}</span><span class="proj-goal-meta">${meta}</span></div>`;
+        h+=`<div class="proj-goal-acts"><button class="icon-btn" onclick="removeGoal('${proj.id}','${goal.id}')" style="font-size:15px;">×</button></div></div>`;
+      });
+      h+=`</div>`;
+    }
+    if(addingGoalToProjId===proj.id){h+=buildAddGoalForm(proj.id);}
+    else{h+=`<button class="add-link" style="margin-top:8px;display:block;" onclick="startAddGoal('${proj.id}')">+ Add daily goal</button>`;}
+    h+=`</div>`;
   });
+  if(addingProject){h+=buildAddProjForm();}
+  else{h+=`<div class="add-wrap"><button class="add-link" onclick="toggleAddProject()">+ Add project</button></div>`;}
+  if(projs.length){
+    h+=`<div class="proj-export-row"><button class="export-btn" onclick="exportProjLogs()">Logs CSV</button><button class="export-btn" onclick="exportProjSummary()">Summary CSV</button></div>`;
+  }
+  return h;
 }
 
+function buildAddGoalForm(pId){
+  const isNum=ngType==="number";
+  let h=`<div class="goal-form"><input class="inp" id="ng-name" placeholder="Goal name (e.g. Write 1,000 words)" value="${esc(ngName)}" oninput="ngName=this.value">`;
+  h+=`<div class="goal-form-row"><span class="goal-form-lbl">Type:</span><button class="sm-btn${isNum?" sel":""}" onclick="ngType='number';renderPTContent()">Number</button><button class="sm-btn${!isNum?" sel":""}" onclick="ngType='check';renderPTContent()">Check</button>`;
+  if(isNum)h+=`<input class="inp" id="ng-tgt" type="number" placeholder="Daily target" style="width:130px;flex-shrink:0;" value="${esc(ngTarget)}" oninput="ngTarget=this.value" min="0">`;
+  h+=`</div><div style="display:flex;gap:8px;"><button class="sm-btn" onclick="submitAddGoal('${pId}')">Add Goal</button><button class="sm-btn" onclick="cancelAddGoal()">Cancel</button></div></div>`;
+  return h;
+}
+
+function buildAddProjForm(){
+  let h=`<div class="proj-form"><div class="proj-form-title">New Project</div>`;
+  h+=`<div class="proj-form-row"><input class="inp" id="np-name" placeholder="Project name" value="${esc(npName)}" oninput="npName=this.value"></div>`;
+  h+=`<div class="proj-form-row"><input class="inp" id="np-param" placeholder="Unit name (e.g. Words, Pages)" value="${esc(npParam)}" oninput="npParam=this.value"><input class="inp" id="np-goal" type="number" placeholder="Goal total (e.g. 100000)" value="${esc(npGoal)}" oninput="npGoal=this.value" min="0" style="max-width:180px;"></div>`;
+  h+=`<div class="color-row">`;
+  CAT_COLORS.forEach(c=>{h+=`<button class="cswatch${c===npColor?" sel":""}" style="background:${c};" onclick="npColor='${c}';renderPTContent()"></button>`;});
+  h+=`</div><div style="display:flex;gap:8px;"><button class="sm-btn" onclick="submitAddProject()">Add Project</button><button class="sm-btn" onclick="toggleAddProject()">Cancel</button></div></div>`;
+  return h;
+}
+
+// ── render: time tracker ───────────────────────────────────────────────────
+function renderTopbar(){
+  const el=document.getElementById("topbar");if(!el)return;
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;"><img src="logo.png" alt="" style="height:28px;width:auto;display:block;" onerror="this.style.display='none'"><span class="tb-title">Time Tracker</span></div><div class="tb-right"><span class="sync-dot ${syncState}" id="sync-dot"></span><button class="icon-btn" onclick="toggleSettings()">${showSettings?"←":"⚙"}</button></div>`;
+}
+function renderNav(){
+  const el=document.getElementById("nav");if(!el)return;
+  if(showSettings){el.innerHTML="";return;}
+  el.innerHTML=`<div class="nav-shell" id="nav-shell"><div class="nav-bubble" id="nav-bubble"></div>`+TABS.map(t=>`<button class="nav-tab${view===t?" active":""}" id="nav-tab-${t}" onclick="setView('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join("")+`</div>`;
+  snapBubble("nav-bubble","nav-tab-"+view);
+}
 function renderContent(){
   try{
-    const el=document.getElementById("content");
-    if(!el)return;
+    const el=document.getElementById("content");if(!el)return;
     if(showSettings){el.innerHTML=buildSettings();return;}
     if(view==="tracker")el.innerHTML=buildTracker();
     else if(view==="insights")el.innerHTML=buildInsights();
     else el.innerHTML=buildManage();
-  }catch(e){
-    console.error("renderContent:",e);
-    const el=document.getElementById("content");
-    if(el)el.innerHTML=`<div style="color:var(--text2);padding:1rem 0;font-size:13px;">Render error — <button style="background:transparent;border:none;cursor:pointer;text-decoration:underline;font-family:inherit;color:var(--text2)" onclick="location.reload()">reload</button></div>`;
-  }
+  }catch(e){console.error("renderContent:",e);const el=document.getElementById("content");if(el)el.innerHTML=`<div style="color:var(--text2);padding:1rem 0;font-size:13px;">Render error — <button style="background:transparent;border:none;cursor:pointer;text-decoration:underline;font-family:inherit;color:var(--text2)" onclick="location.reload()">reload</button></div>`;}
 }
-
-// setView: only update nav DOM, then render content. Never rebuilds nav.
 function setView(v){
-  view=v;
-  try{localStorage.setItem("tt-view",v);}catch(e){}
-  // Update active class on existing tab buttons
-  TABS.forEach(t=>{
-    const tab=document.getElementById("nav-tab-"+t);
-    if(tab)tab.classList.toggle("active",t===v);
+  view=v;try{localStorage.setItem("tt-view",v);}catch(e){}
+  TABS.forEach(t=>{const tab=document.getElementById("nav-tab-"+t);if(tab)tab.classList.toggle("active",t===v);});
+  const bubble=document.getElementById("nav-bubble"),tab=document.getElementById("nav-tab-"+v);
+  if(bubble&&tab){bubble.style.transform=`translateX(${tab.offsetLeft}px)`;bubble.style.width=tab.offsetWidth+"px";}
+  renderContent();
+}
+function toggleSettings(){showSettings=!showSettings;renderTopbar();renderNav();renderContent();}
+
+// ── render: project tracker ────────────────────────────────────────────────
+function renderPTTopbar(){
+  const el=document.getElementById("pt-topbar");if(!el)return;
+  el.innerHTML=`<span class="tb-title">Projects</span>`;
+}
+function renderPTNav(){
+  const el=document.getElementById("pt-nav");if(!el)return;
+  el.innerHTML=`<div class="nav-shell" id="pt-nav-shell"><div class="nav-bubble" id="pt-nav-bubble"></div>`+PT_TABS.map(t=>`<button class="nav-tab${ptView===t?" active":""}" id="pt-tab-${t}" onclick="setPTView('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join("")+`</div>`;
+  snapBubble("pt-nav-bubble","pt-tab-"+ptView);
+}
+function renderPTContent(){
+  try{
+    const el=document.getElementById("pt-content");if(!el)return;
+    el.innerHTML=ptView==="today"?buildPTToday():buildPTProjects();
+  }catch(e){console.error("renderPTContent:",e);const el=document.getElementById("pt-content");if(el)el.innerHTML=`<div style="color:var(--text2);padding:1rem 0;font-size:13px;">Render error</div>`;}
+}
+function setPTView(v){
+  ptView=v;
+  const bubble=document.getElementById("pt-nav-bubble"),tab=document.getElementById("pt-tab-"+v);
+  if(bubble&&tab){bubble.style.transform=`translateX(${tab.offsetLeft}px)`;bubble.style.width=tab.offsetWidth+"px";}
+  document.querySelectorAll("#pt-nav .nav-tab").forEach(t=>t.classList.toggle("active",t.id==="pt-tab-"+v));
+  renderPTContent();
+}
+
+// ── render: mobile top tabs ────────────────────────────────────────────────
+function renderTopTabs(){
+  const el=document.getElementById("top-tabs");if(!el)return;
+  el.innerHTML=`<div class="nav-shell" id="app-nav-shell"><div class="nav-bubble" id="app-nav-bubble"></div><button class="nav-tab${mobApp==="time"?" active":""}" id="app-tab-time" onclick="setMobApp('time')">Time</button><button class="nav-tab${mobApp==="projects"?" active":""}" id="app-tab-projects" onclick="setMobApp('projects')">Projects</button></div>`;
+  snapBubble("app-nav-bubble","app-tab-"+mobApp);
+}
+function setMobApp(app){
+  mobApp=app;
+  document.getElementById("tt-col").classList.toggle("mob-on",app==="time");
+  document.getElementById("pt-col").classList.toggle("mob-on",app==="projects");
+  const bubble=document.getElementById("app-nav-bubble"),tab=document.getElementById("app-tab-"+app);
+  if(bubble&&tab){bubble.style.transform=`translateX(${tab.offsetLeft}px)`;bubble.style.width=tab.offsetWidth+"px";}
+  document.querySelectorAll("#top-tabs .nav-tab").forEach(t=>t.classList.toggle("active",t.id==="app-tab-"+app));
+}
+
+// ── shared bubble snap ─────────────────────────────────────────────────────
+function snapBubble(bubbleId,tabId){
+  requestAnimationFrame(()=>{
+    const b=document.getElementById(bubbleId),t=document.getElementById(tabId);
+    if(!b||!t)return;
+    b.style.transition="none";b.style.transform=`translateX(${t.offsetLeft}px)`;b.style.width=t.offsetWidth+"px";
+    requestAnimationFrame(()=>{b.style.transition="";});
   });
-  // Animate bubble to new tab
-  const bubble=document.getElementById("nav-bubble");
-  const tab=document.getElementById("nav-tab-"+v);
-  if(bubble&&tab){
-    bubble.style.transform=`translateX(${tab.offsetLeft}px)`;
-    bubble.style.width=tab.offsetWidth+"px";
-  }
-  renderContent();
 }
 
-function toggleSettings(){
-  showSettings=!showSettings;
-  renderTopbar();
-  renderNav();
-  renderContent();
-}
-
-// ── ui handlers ────────────────────────────────────────────────────────────
+// ── ui handlers: time ──────────────────────────────────────────────────────
 function setPeriod(p){period=p;activeTagFilter=null;renderContent();}
 function setTagViewMode(m){tagViewMode=m;renderContent();}
-function toggleAddCat(){
-  addingCat=!addingCat;
-  renderContent();
-  if(addingCat)setTimeout(()=>{const el=document.getElementById("new-cat-in");if(el)el.focus();},30);
-}
-function submitCat(){
-  const el=document.getElementById("new-cat-in");
-  const v=(el?el.value:"").trim();
-  if(v){addCat(v);addingCat=false;}
-}
-function newCatKey(ev){
-  if(ev.key==="Enter")submitCat();
-  if(ev.key==="Escape"){addingCat=false;renderContent();}
-}
-function toggleSession(id){
-  expandedSid=expandedSid===id?null:id;
-  expandedAddingTag=false;
-  renderContent();
-}
-function openSessionTagInput(sid){
-  expandedAddingTag=true;
-  renderContent();
-  setTimeout(()=>{const el=document.getElementById("sedit-in-"+sid);if(el)el.focus();},30);
-}
+function toggleAddCat(){addingCat=!addingCat;renderContent();if(addingCat)setTimeout(()=>{const el=document.getElementById("new-cat-in");if(el)el.focus();},30);}
+function submitCat(){const el=document.getElementById("new-cat-in");const v=(el?el.value:"").trim();if(v){addCat(v);addingCat=false;}}
+function newCatKey(ev){if(ev.key==="Enter")submitCat();if(ev.key==="Escape"){addingCat=false;renderContent();}}
+function toggleSession(id){expandedSid=expandedSid===id?null:id;expandedAddingTag=false;renderContent();}
+function openSessionTagInput(sid){expandedAddingTag=true;renderContent();setTimeout(()=>{const el=document.getElementById("sedit-in-"+sid);if(el)el.focus();},30);}
 function closeSessionTagInput(){expandedAddingTag=false;renderContent();}
 function startTagEdit(catId,tag){editingTag={catId,tag};renderContent();setTimeout(()=>{const id=`tedit-${catId}-${esc(tag)}`;const el=document.getElementById(id);if(el){el.focus();el.select();}},30);}
 function cancelTagEdit(){editingTag=null;renderContent();}
 function submitTagEdit(catId,oldTag,inputId){const el=document.getElementById(inputId);renameTag(catId,oldTag,el?el.value:oldTag);}
 function tagEditKey(ev,catId,oldTag,inputId){if(ev.key==="Enter"){ev.preventDefault();submitTagEdit(catId,oldTag,inputId);}if(ev.key==="Escape")cancelTagEdit();}
-
 async function doConnect(){
-  const tokEl=document.getElementById("tok-in");
-  const tok=(tokEl?tokEl.value:"").trim();
-  const msgEl=document.getElementById("setup-msg");
-  const btn=document.getElementById("conn-btn");
+  const tokEl=document.getElementById("tok-in"),tok=(tokEl?tokEl.value:"").trim();
+  const msgEl=document.getElementById("setup-msg"),btn=document.getElementById("conn-btn");
   if(!tok){if(msgEl)msgEl.innerHTML=`<div class="fl-msg error">Please enter a token.</div>`;return;}
   if(btn){btn.disabled=true;btn.textContent="Connecting…";}
   try{
-    token=tok;
-    gistId=await findOrCreate();
-    localStorage.setItem(TKEY,token);
-    localStorage.setItem(GKEY,gistId);
-    await syncLoad();
-    showSettings=false;
-    renderTopbar();renderNav();renderContent();
+    token=tok;gistId=await findOrCreate();localStorage.setItem(TKEY,token);localStorage.setItem(GKEY,gistId);
+    await syncLoad();showSettings=false;renderTopbar();renderNav();renderContent();
   }catch(ex){
     token="";gistId="";
     if(msgEl)msgEl.innerHTML=`<div class="fl-msg error">Failed: ${esc(ex.message)}</div>`;
     if(btn){btn.disabled=false;btn.textContent="Connect";}
   }
 }
-function doDisconnect(){
-  if(!confirm("Disconnect? Your local data stays but won't sync."))return;
-  token="";gistId="";
-  localStorage.removeItem(TKEY);
-  localStorage.removeItem(GKEY);
-  // also tear down Ably since it depends on gistId for the channel name
-  ablyDisconnect();
-  ablyKey="";
-  localStorage.removeItem(AKEY);
-  renderContent();
-}
+function doDisconnect(){if(!confirm("Disconnect? Your local data stays but won't sync."))return;token="";gistId="";localStorage.removeItem(TKEY);localStorage.removeItem(GKEY);renderContent();}
 
-function doAblyConnect(){
-  const keyEl=document.getElementById("ably-in");
-  const key=(keyEl?keyEl.value:"").trim();
-  const msgEl=document.getElementById("ably-msg");
-  const btn=document.getElementById("ably-btn");
-  if(!key){if(msgEl)msgEl.innerHTML=`<div class="fl-msg error">Please enter an Ably API key.</div>`;return;}
-  if(btn){btn.disabled=true;btn.textContent="Connecting…";}
-  ablyKey=key;
-  localStorage.setItem(AKEY,ablyKey);
-  ablyConnect();
-  // connection.on("connected") inside ablyConnect will call renderContent()
-  // if connection fails, connection.on("failed") will also call renderContent()
-  // show a "connecting…" state in the meantime
-  renderContent();
+// ── ui handlers: projects ──────────────────────────────────────────────────
+function toggleAddProject(){
+  addingProject=!addingProject;
+  if(addingProject){npName="";npParam="";npGoal="";npColor=CAT_COLORS[(data.projects||[]).length%CAT_COLORS.length];}
+  renderPTContent();if(addingProject)setTimeout(()=>{const el=document.getElementById("np-name");if(el)el.focus();},30);
 }
-
-function doAblyDisconnect(){
-  ablyDisconnect();
-  ablyKey="";
-  localStorage.removeItem(AKEY);
-  renderContent();
+function submitAddProject(){
+  const name=(document.getElementById("np-name")||{value:npName}).value.trim();
+  const param=(document.getElementById("np-param")||{value:npParam}).value.trim();
+  const goal=parseFloat((document.getElementById("np-goal")||{value:npGoal}).value);
+  if(!name)return;
+  addProject(name,param||"Units",isNaN(goal)?100:goal,npColor);
 }
+function startAddGoal(pId){addingGoalToProjId=pId;ngName="";ngType="number";ngTarget="";renderPTContent();setTimeout(()=>{const el=document.getElementById("ng-name");if(el)el.focus();},30);}
+function cancelAddGoal(){addingGoalToProjId=null;renderPTContent();}
+function submitAddGoal(pId){
+  const name=(document.getElementById("ng-name")||{value:ngName}).value.trim();
+  const tgt=parseFloat((document.getElementById("ng-tgt")||{value:ngTarget}).value);
+  if(!name)return;
+  addGoal(pId,name,ngType,ngType==="number"?(isNaN(tgt)?1:tgt):null);
+}
+function startEditLog(pId,gId){editingLogKey={pId,gId};renderPTContent();setTimeout(()=>{const el=document.getElementById(`gl-${pId}-${gId}`);if(el){el.focus();el.select();}},30);}
+function cancelEditLog(){editingLogKey=null;renderPTContent();}
+function submitLog(pId,gId){const el=document.getElementById(`gl-${pId}-${gId}`);if(!el||el.value==="")return;logGoal(pId,gId,el.value);}
 
-// ── clock tick (only updates text, never rebuilds DOM) ─────────────────────
+// ── clock tick ─────────────────────────────────────────────────────────────
 setInterval(()=>{
   if(!data.activeSession||view!=="tracker"||showSettings)return;
   const el=document.getElementById("timer-el");
   if(el)el.textContent=fmt(Math.floor((Date.now()-data.activeSession.startTime)/1000));
 },1000);
-
-// ── pull when tab becomes visible (phone unlock, tab switch, etc.) ─────────
-document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState!=="visible")return;
-  if(!token||!gistId||saveTimer)return;
-  gLoad(gistId).then(d=>{
-    data=d;lsave(data);setSS("ok");bumpDot();renderContent();
-  }).catch(()=>{});
-});
+setInterval(pollForUpdates,30000);
 
 // ── init ───────────────────────────────────────────────────────────────────
 (function(){
-  try{
-    const saved=lload();
-    if(saved&&Array.isArray(saved.categories)&&saved.categories.length){
-      data=saved;
-      if(!data.tagPools)data.tagPools={};
-    }
-  }catch(e){console.warn("init load:",e);}
+  try{const saved=lload();if(saved&&Array.isArray(saved.categories)&&saved.categories.length)data=fixData(saved);}catch(e){console.warn("init:",e);}
   try{const sv=localStorage.getItem("tt-view");if(sv&&TABS.includes(sv))view=sv;}catch(e){}
   token=localStorage.getItem(TKEY)||"";
   gistId=localStorage.getItem(GKEY)||"";
-  ablyKey=localStorage.getItem(AKEY)||"";
-  renderTopbar();
-  renderNav();
-  renderContent();
-  if(token&&gistId){
-    syncLoad();
-    if(ablyKey)ablyConnect();
-  }
+  renderTopTabs();
+  renderTopbar();renderNav();renderContent();
+  renderPTTopbar();renderPTNav();renderPTContent();
+  if(token&&gistId)syncLoad();
 })();
 </script>
 </body>
